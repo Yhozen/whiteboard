@@ -47,7 +47,7 @@ var peers = []
 var peerId = new Buffer(hat(160), 'hex')
 
 var torrentData = {}
-
+window.states = { torrentData, peers, peerId, state, currentPathId }
 // create canvas
 var canvas = document.createElement('canvas')
 var ctx = canvas.getContext('2d')
