@@ -11,7 +11,7 @@ var WebTorrent = require('webtorrent')
 var xhr = require('xhr')
 
 var TRACKERS_URL = [ 'wss://tracker.openwebtorrent.com',
-                    'wss://tracker.btorrent.xyz,
+                    'wss://tracker.btorrent.xyz',
                     'wss://tracker.fastcast.nz' ]
 
 global.WEBTORRENT_ANNOUNCE = TRACKERS_URL
