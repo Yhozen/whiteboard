@@ -252,7 +252,7 @@ var tracker = new Tracker({
 tracker.start()
 
 tracker.on('peer', function (peer) {
-  if (peers.includes(peer)) return undefined
+  if (included(peers, peer)) return undefined
   peers.push(peer)
 
   if (peer.connected) onConnect()
@@ -365,6 +365,13 @@ function toImage (buf, cb) {
 var ua = navigator.userAgent.toLowerCase()
 if (ua.indexOf('android') > -1) {
   document.body.className = 'android'
+}
+function included (peers, peer) {
+  let bol = false
+  peers.map(p => {
+    if (p.id == peer.id) bol = true
+  })
+  return bol
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
