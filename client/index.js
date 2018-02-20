@@ -10,9 +10,11 @@ var videostream = require('videostream')
 var WebTorrent = require('webtorrent')
 var xhr = require('xhr')
 
-var TRACKER_URL = 'wss://tracker.fastcast.nz'
+var TRACKERS_URL = [ 'wss://tracker.openwebtorrent.com',
+                    'wss://tracker.btorrent.xyz,
+                    'wss://tracker.fastcast.nz' ]
 
-global.WEBTORRENT_ANNOUNCE = [ TRACKER_URL ]
+global.WEBTORRENT_ANNOUNCE = TRACKERS_URL
 
 if (!Peer.WEBRTC_SUPPORT) {
   window.alert('This browser is unsupported. Please use a browser with WebRTC support.')
