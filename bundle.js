@@ -245,7 +245,7 @@ function onMove (e) {
 
 var tracker = new Tracker({
   peerId: peerId,
-  announce: TRACKER_URL,
+  announce: TRACKERS_URL,
   infoHash: new Buffer(20).fill('webrtc-whiteboard')
 })
 
