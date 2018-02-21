@@ -110,7 +110,7 @@ function redraw () {
         torrentData[data.infoHash] = { complete: false }
         getClient(function (err, client) {
           if (err) return window.alert(err.message || err)
-          client.download(data.infoHash, function (torrent) {
+          client.add(data.infoHash, function (torrent) {
             var file = torrent.files[0]
             if (!file) return
             if (data.img) {
