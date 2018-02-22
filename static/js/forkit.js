@@ -6,7 +6,6 @@
  * Created by Hakim El Hattab, http://hakim.se
  */
 (function(){
-
 	var STATE_CLOSED = 0,
 		STATE_DETACHED = 1,
 		STATE_OPENED = 2,
@@ -63,7 +62,6 @@
 		mouse = new Point();
 
 	function initialize() {
-
 		dom.ribbon = document.querySelector( '.forkit' );
 		dom.curtain = document.querySelector( '.forkit-curtain' );
 		dom.closeButton = document.querySelector( '.forkit-curtain .close-button' );
@@ -360,8 +358,6 @@
 					window.setTimeout(callback, 1000 / 60);
 				};
 	})();
-
 	initialize();
-
 })();
 
