@@ -375,7 +375,7 @@ function included (peers, peer) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"bittorrent-tracker/client":12,"buffer":22,"cat-names":25,"debug":33,"drag-drop":36,"hat":44,"path":75,"simple-peer":103,"thunky":119,"videostream":148,"webtorrent":149,"xhr":162}],2:[function(require,module,exports){
+},{"bittorrent-tracker/client":10,"buffer":22,"cat-names":25,"debug":33,"drag-drop":36,"hat":44,"path":75,"simple-peer":105,"thunky":119,"videostream":143,"webtorrent":144,"xhr":155}],2:[function(require,module,exports){
 var ADDR_RE = /^\[?([^\]]+)\]?:(\d+)$/ // ipv4/ipv6/hostname + port
 
 var cache = {}
@@ -1377,7 +1377,7 @@ function pull (requests, piece, offset, length) {
   return null
 }
 
-},{"bencode":9,"bitfield":5,"debug":10,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":100,"speedometer":108,"unordered-array-remove":137,"xtend":163}],7:[function(require,module,exports){
+},{"bencode":9,"bitfield":5,"debug":33,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":102,"speedometer":108,"unordered-array-remove":134,"xtend":156}],7:[function(require,module,exports){
 (function (Buffer){
 const INTEGER_START = 0x69 // 'i'
 const STRING_DELIM = 0x3A // ':'
@@ -1664,7 +1664,7 @@ encode.list = function (buffers, data) {
 
 module.exports = encode
 
-},{"safe-buffer":100}],9:[function(require,module,exports){
+},{"safe-buffer":102}],9:[function(require,module,exports){
 var bencode = module.exports
 
 bencode.encode = require('./encode')
@@ -1681,432 +1681,6 @@ bencode.byteLength = bencode.encodingLength = function (value) {
 }
 
 },{"./decode":7,"./encode":8}],10:[function(require,module,exports){
-(function (process){
-/**
- * This is the web browser implementation of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = require('./debug');
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-exports.storage = 'undefined' != typeof chrome
-               && 'undefined' != typeof chrome.storage
-                  ? chrome.storage.local
-                  : localstorage();
-
-/**
- * Colors.
- */
-
-exports.colors = [
-  '#0000CC', '#0000FF', '#0033CC', '#0033FF', '#0066CC', '#0066FF', '#0099CC',
-  '#0099FF', '#00CC00', '#00CC33', '#00CC66', '#00CC99', '#00CCCC', '#00CCFF',
-  '#3300CC', '#3300FF', '#3333CC', '#3333FF', '#3366CC', '#3366FF', '#3399CC',
-  '#3399FF', '#33CC00', '#33CC33', '#33CC66', '#33CC99', '#33CCCC', '#33CCFF',
-  '#6600CC', '#6600FF', '#6633CC', '#6633FF', '#66CC00', '#66CC33', '#9900CC',
-  '#9900FF', '#9933CC', '#9933FF', '#99CC00', '#99CC33', '#CC0000', '#CC0033',
-  '#CC0066', '#CC0099', '#CC00CC', '#CC00FF', '#CC3300', '#CC3333', '#CC3366',
-  '#CC3399', '#CC33CC', '#CC33FF', '#CC6600', '#CC6633', '#CC9900', '#CC9933',
-  '#CCCC00', '#CCCC33', '#FF0000', '#FF0033', '#FF0066', '#FF0099', '#FF00CC',
-  '#FF00FF', '#FF3300', '#FF3333', '#FF3366', '#FF3399', '#FF33CC', '#FF33FF',
-  '#FF6600', '#FF6633', '#FF9900', '#FF9933', '#FFCC00', '#FFCC33'
-];
-
-/**
- * Currently only WebKit-based Web Inspectors, Firefox >= v31,
- * and the Firebug extension (any Firefox version) are known
- * to support "%c" CSS customizations.
- *
- * TODO: add a `localStorage` variable to explicitly enable/disable colors
- */
-
-function useColors() {
-  // NB: In an Electron preload script, document will be defined but not fully
-  // initialized. Since we know we're in Chrome, we'll just detect this case
-  // explicitly
-  if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
-    return true;
-  }
-
-  // Internet Explorer and Edge do not support colors.
-  if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-    return false;
-  }
-
-  // is webkit? http://stackoverflow.com/a/16459606/376773
-  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
-  return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
-    // is firebug? http://stackoverflow.com/a/398120/376773
-    (typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
-    // is firefox >= v31?
-    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
-    // double check webkit in userAgent just in case we are in a worker
-    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
-}
-
-/**
- * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
- */
-
-exports.formatters.j = function(v) {
-  try {
-    return JSON.stringify(v);
-  } catch (err) {
-    return '[UnexpectedJSONParseError]: ' + err.message;
-  }
-};
-
-
-/**
- * Colorize log arguments if enabled.
- *
- * @api public
- */
-
-function formatArgs(args) {
-  var useColors = this.useColors;
-
-  args[0] = (useColors ? '%c' : '')
-    + this.namespace
-    + (useColors ? ' %c' : ' ')
-    + args[0]
-    + (useColors ? '%c ' : ' ')
-    + '+' + exports.humanize(this.diff);
-
-  if (!useColors) return;
-
-  var c = 'color: ' + this.color;
-  args.splice(1, 0, c, 'color: inherit')
-
-  // the final "%c" is somewhat tricky, because there could be other
-  // arguments passed either before or after the %c, so we need to
-  // figure out the correct index to insert the CSS into
-  var index = 0;
-  var lastC = 0;
-  args[0].replace(/%[a-zA-Z%]/g, function(match) {
-    if ('%%' === match) return;
-    index++;
-    if ('%c' === match) {
-      // we only are interested in the *last* %c
-      // (the user may have provided their own)
-      lastC = index;
-    }
-  });
-
-  args.splice(lastC, 0, c);
-}
-
-/**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
- *
- * @api public
- */
-
-function log() {
-  // this hackery is required for IE8/9, where
-  // the `console.log` function doesn't have 'apply'
-  return 'object' === typeof console
-    && console.log
-    && Function.prototype.apply.call(console.log, console, arguments);
-}
-
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-function save(namespaces) {
-  try {
-    if (null == namespaces) {
-      exports.storage.removeItem('debug');
-    } else {
-      exports.storage.debug = namespaces;
-    }
-  } catch(e) {}
-}
-
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-function load() {
-  var r;
-  try {
-    r = exports.storage.debug;
-  } catch(e) {}
-
-  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
-  if (!r && typeof process !== 'undefined' && 'env' in process) {
-    r = process.env.DEBUG;
-  }
-
-  return r;
-}
-
-/**
- * Enable namespaces listed in `localStorage.debug` initially.
- */
-
-exports.enable(load());
-
-/**
- * Localstorage attempts to return the localstorage.
- *
- * This is necessary because safari throws
- * when a user disables cookies/localstorage
- * and you attempt to access it.
- *
- * @return {LocalStorage}
- * @api private
- */
-
-function localstorage() {
-  try {
-    return window.localStorage;
-  } catch (e) {}
-}
-
-}).call(this,require('_process'))
-},{"./debug":11,"_process":21}],11:[function(require,module,exports){
-
-/**
- * This is the common logic for both the Node.js and web browser
- * implementations of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = createDebug.debug = createDebug['default'] = createDebug;
-exports.coerce = coerce;
-exports.disable = disable;
-exports.enable = enable;
-exports.enabled = enabled;
-exports.humanize = require('ms');
-
-/**
- * Active `debug` instances.
- */
-exports.instances = [];
-
-/**
- * The currently active debug mode names, and names to skip.
- */
-
-exports.names = [];
-exports.skips = [];
-
-/**
- * Map of special "%n" handling functions, for the debug "format" argument.
- *
- * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
- */
-
-exports.formatters = {};
-
-/**
- * Select a color.
- * @param {String} namespace
- * @return {Number}
- * @api private
- */
-
-function selectColor(namespace) {
-  var hash = 0, i;
-
-  for (i in namespace) {
-    hash  = ((hash << 5) - hash) + namespace.charCodeAt(i);
-    hash |= 0; // Convert to 32bit integer
-  }
-
-  return exports.colors[Math.abs(hash) % exports.colors.length];
-}
-
-/**
- * Create a debugger with the given `namespace`.
- *
- * @param {String} namespace
- * @return {Function}
- * @api public
- */
-
-function createDebug(namespace) {
-
-  var prevTime;
-
-  function debug() {
-    // disabled?
-    if (!debug.enabled) return;
-
-    var self = debug;
-
-    // set `diff` timestamp
-    var curr = +new Date();
-    var ms = curr - (prevTime || curr);
-    self.diff = ms;
-    self.prev = prevTime;
-    self.curr = curr;
-    prevTime = curr;
-
-    // turn the `arguments` into a proper Array
-    var args = new Array(arguments.length);
-    for (var i = 0; i < args.length; i++) {
-      args[i] = arguments[i];
-    }
-
-    args[0] = exports.coerce(args[0]);
-
-    if ('string' !== typeof args[0]) {
-      // anything else let's inspect with %O
-      args.unshift('%O');
-    }
-
-    // apply any `formatters` transformations
-    var index = 0;
-    args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
-      // if we encounter an escaped % then don't increase the array index
-      if (match === '%%') return match;
-      index++;
-      var formatter = exports.formatters[format];
-      if ('function' === typeof formatter) {
-        var val = args[index];
-        match = formatter.call(self, val);
-
-        // now we need to remove `args[index]` since it's inlined in the `format`
-        args.splice(index, 1);
-        index--;
-      }
-      return match;
-    });
-
-    // apply env-specific formatting (colors, etc.)
-    exports.formatArgs.call(self, args);
-
-    var logFn = debug.log || exports.log || console.log.bind(console);
-    logFn.apply(self, args);
-  }
-
-  debug.namespace = namespace;
-  debug.enabled = exports.enabled(namespace);
-  debug.useColors = exports.useColors();
-  debug.color = selectColor(namespace);
-  debug.destroy = destroy;
-
-  // env-specific initialization logic for debug instances
-  if ('function' === typeof exports.init) {
-    exports.init(debug);
-  }
-
-  exports.instances.push(debug);
-
-  return debug;
-}
-
-function destroy () {
-  var index = exports.instances.indexOf(this);
-  if (index !== -1) {
-    exports.instances.splice(index, 1);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/**
- * Enables a debug mode by namespaces. This can include modes
- * separated by a colon and wildcards.
- *
- * @param {String} namespaces
- * @api public
- */
-
-function enable(namespaces) {
-  exports.save(namespaces);
-
-  exports.names = [];
-  exports.skips = [];
-
-  var i;
-  var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
-  var len = split.length;
-
-  for (i = 0; i < len; i++) {
-    if (!split[i]) continue; // ignore empty strings
-    namespaces = split[i].replace(/\*/g, '.*?');
-    if (namespaces[0] === '-') {
-      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
-    } else {
-      exports.names.push(new RegExp('^' + namespaces + '$'));
-    }
-  }
-
-  for (i = 0; i < exports.instances.length; i++) {
-    var instance = exports.instances[i];
-    instance.enabled = exports.enabled(instance.namespace);
-  }
-}
-
-/**
- * Disable debug output.
- *
- * @api public
- */
-
-function disable() {
-  exports.enable('');
-}
-
-/**
- * Returns true if the given mode name is enabled, false otherwise.
- *
- * @param {String} name
- * @return {Boolean}
- * @api public
- */
-
-function enabled(name) {
-  if (name[name.length - 1] === '*') {
-    return true;
-  }
-  var i, len;
-  for (i = 0, len = exports.skips.length; i < len; i++) {
-    if (exports.skips[i].test(name)) {
-      return false;
-    }
-  }
-  for (i = 0, len = exports.names.length; i < len; i++) {
-    if (exports.names[i].test(name)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Coerce `val`.
- *
- * @param {Mixed} val
- * @return {Mixed}
- * @api private
- */
-
-function coerce(val) {
-  if (val instanceof Error) return val.stack || val.message;
-  return val;
-}
-
-},{"ms":65}],12:[function(require,module,exports){
 (function (process){
 module.exports = Client
 
@@ -2406,7 +1980,7 @@ Client.prototype._defaultAnnounceOpts = function (opts) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/client/http-tracker":19,"./lib/client/udp-tracker":19,"./lib/client/websocket-tracker":14,"./lib/common":15,"_process":21,"debug":33,"events":38,"inherits":48,"once":68,"run-parallel":98,"safe-buffer":100,"simple-peer":16,"uniq":134,"url":138,"xtend":163}],13:[function(require,module,exports){
+},{"./lib/client/http-tracker":19,"./lib/client/udp-tracker":19,"./lib/client/websocket-tracker":12,"./lib/common":13,"_process":21,"debug":14,"events":38,"inherits":48,"once":68,"run-parallel":100,"safe-buffer":102,"simple-peer":16,"uniq":131,"url":135,"xtend":156}],11:[function(require,module,exports){
 module.exports = Tracker
 
 var EventEmitter = require('events').EventEmitter
@@ -2438,7 +2012,7 @@ Tracker.prototype.setInterval = function (intervalMs) {
   }
 }
 
-},{"events":38,"inherits":48}],14:[function(require,module,exports){
+},{"events":38,"inherits":48}],12:[function(require,module,exports){
 module.exports = WebSocketTracker
 
 var debug = require('debug')('bittorrent-tracker:websocket-tracker')
@@ -2865,7 +2439,7 @@ WebSocketTracker.prototype._generateOffers = function (numwant, cb) {
 
 function noop () {}
 
-},{"../common":15,"./tracker":13,"debug":33,"inherits":48,"randombytes":84,"simple-peer":16,"simple-websocket":105,"xtend":163}],15:[function(require,module,exports){
+},{"../common":13,"./tracker":11,"debug":14,"inherits":48,"randombytes":84,"simple-peer":16,"simple-websocket":107,"xtend":156}],13:[function(require,module,exports){
 /**
  * Functions/constants needed by both the client and server.
  */
@@ -2893,7 +2467,400 @@ exports.hexToBinary = function (str) {
 var config = require('./common-node')
 extend(exports, config)
 
-},{"./common-node":19,"safe-buffer":100,"xtend/mutable":164}],16:[function(require,module,exports){
+},{"./common-node":19,"safe-buffer":102,"xtend/mutable":157}],14:[function(require,module,exports){
+(function (process){
+/**
+ * This is the web browser implementation of `debug()`.
+ *
+ * Expose `debug()` as the module.
+ */
+
+exports = module.exports = require('./debug');
+exports.log = log;
+exports.formatArgs = formatArgs;
+exports.save = save;
+exports.load = load;
+exports.useColors = useColors;
+exports.storage = 'undefined' != typeof chrome
+               && 'undefined' != typeof chrome.storage
+                  ? chrome.storage.local
+                  : localstorage();
+
+/**
+ * Colors.
+ */
+
+exports.colors = [
+  'lightseagreen',
+  'forestgreen',
+  'goldenrod',
+  'dodgerblue',
+  'darkorchid',
+  'crimson'
+];
+
+/**
+ * Currently only WebKit-based Web Inspectors, Firefox >= v31,
+ * and the Firebug extension (any Firefox version) are known
+ * to support "%c" CSS customizations.
+ *
+ * TODO: add a `localStorage` variable to explicitly enable/disable colors
+ */
+
+function useColors() {
+  // NB: In an Electron preload script, document will be defined but not fully
+  // initialized. Since we know we're in Chrome, we'll just detect this case
+  // explicitly
+  if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
+    return true;
+  }
+
+  // is webkit? http://stackoverflow.com/a/16459606/376773
+  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+  return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
+    // is firebug? http://stackoverflow.com/a/398120/376773
+    (typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
+    // is firefox >= v31?
+    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
+    // double check webkit in userAgent just in case we are in a worker
+    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
+}
+
+/**
+ * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
+ */
+
+exports.formatters.j = function(v) {
+  try {
+    return JSON.stringify(v);
+  } catch (err) {
+    return '[UnexpectedJSONParseError]: ' + err.message;
+  }
+};
+
+
+/**
+ * Colorize log arguments if enabled.
+ *
+ * @api public
+ */
+
+function formatArgs(args) {
+  var useColors = this.useColors;
+
+  args[0] = (useColors ? '%c' : '')
+    + this.namespace
+    + (useColors ? ' %c' : ' ')
+    + args[0]
+    + (useColors ? '%c ' : ' ')
+    + '+' + exports.humanize(this.diff);
+
+  if (!useColors) return;
+
+  var c = 'color: ' + this.color;
+  args.splice(1, 0, c, 'color: inherit')
+
+  // the final "%c" is somewhat tricky, because there could be other
+  // arguments passed either before or after the %c, so we need to
+  // figure out the correct index to insert the CSS into
+  var index = 0;
+  var lastC = 0;
+  args[0].replace(/%[a-zA-Z%]/g, function(match) {
+    if ('%%' === match) return;
+    index++;
+    if ('%c' === match) {
+      // we only are interested in the *last* %c
+      // (the user may have provided their own)
+      lastC = index;
+    }
+  });
+
+  args.splice(lastC, 0, c);
+}
+
+/**
+ * Invokes `console.log()` when available.
+ * No-op when `console.log` is not a "function".
+ *
+ * @api public
+ */
+
+function log() {
+  // this hackery is required for IE8/9, where
+  // the `console.log` function doesn't have 'apply'
+  return 'object' === typeof console
+    && console.log
+    && Function.prototype.apply.call(console.log, console, arguments);
+}
+
+/**
+ * Save `namespaces`.
+ *
+ * @param {String} namespaces
+ * @api private
+ */
+
+function save(namespaces) {
+  try {
+    if (null == namespaces) {
+      exports.storage.removeItem('debug');
+    } else {
+      exports.storage.debug = namespaces;
+    }
+  } catch(e) {}
+}
+
+/**
+ * Load `namespaces`.
+ *
+ * @return {String} returns the previously persisted debug modes
+ * @api private
+ */
+
+function load() {
+  var r;
+  try {
+    r = exports.storage.debug;
+  } catch(e) {}
+
+  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
+  if (!r && typeof process !== 'undefined' && 'env' in process) {
+    r = process.env.DEBUG;
+  }
+
+  return r;
+}
+
+/**
+ * Enable namespaces listed in `localStorage.debug` initially.
+ */
+
+exports.enable(load());
+
+/**
+ * Localstorage attempts to return the localstorage.
+ *
+ * This is necessary because safari throws
+ * when a user disables cookies/localstorage
+ * and you attempt to access it.
+ *
+ * @return {LocalStorage}
+ * @api private
+ */
+
+function localstorage() {
+  try {
+    return window.localStorage;
+  } catch (e) {}
+}
+
+}).call(this,require('_process'))
+},{"./debug":15,"_process":21}],15:[function(require,module,exports){
+
+/**
+ * This is the common logic for both the Node.js and web browser
+ * implementations of `debug()`.
+ *
+ * Expose `debug()` as the module.
+ */
+
+exports = module.exports = createDebug.debug = createDebug['default'] = createDebug;
+exports.coerce = coerce;
+exports.disable = disable;
+exports.enable = enable;
+exports.enabled = enabled;
+exports.humanize = require('ms');
+
+/**
+ * The currently active debug mode names, and names to skip.
+ */
+
+exports.names = [];
+exports.skips = [];
+
+/**
+ * Map of special "%n" handling functions, for the debug "format" argument.
+ *
+ * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+ */
+
+exports.formatters = {};
+
+/**
+ * Previous log timestamp.
+ */
+
+var prevTime;
+
+/**
+ * Select a color.
+ * @param {String} namespace
+ * @return {Number}
+ * @api private
+ */
+
+function selectColor(namespace) {
+  var hash = 0, i;
+
+  for (i in namespace) {
+    hash  = ((hash << 5) - hash) + namespace.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+
+  return exports.colors[Math.abs(hash) % exports.colors.length];
+}
+
+/**
+ * Create a debugger with the given `namespace`.
+ *
+ * @param {String} namespace
+ * @return {Function}
+ * @api public
+ */
+
+function createDebug(namespace) {
+
+  function debug() {
+    // disabled?
+    if (!debug.enabled) return;
+
+    var self = debug;
+
+    // set `diff` timestamp
+    var curr = +new Date();
+    var ms = curr - (prevTime || curr);
+    self.diff = ms;
+    self.prev = prevTime;
+    self.curr = curr;
+    prevTime = curr;
+
+    // turn the `arguments` into a proper Array
+    var args = new Array(arguments.length);
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i];
+    }
+
+    args[0] = exports.coerce(args[0]);
+
+    if ('string' !== typeof args[0]) {
+      // anything else let's inspect with %O
+      args.unshift('%O');
+    }
+
+    // apply any `formatters` transformations
+    var index = 0;
+    args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
+      // if we encounter an escaped % then don't increase the array index
+      if (match === '%%') return match;
+      index++;
+      var formatter = exports.formatters[format];
+      if ('function' === typeof formatter) {
+        var val = args[index];
+        match = formatter.call(self, val);
+
+        // now we need to remove `args[index]` since it's inlined in the `format`
+        args.splice(index, 1);
+        index--;
+      }
+      return match;
+    });
+
+    // apply env-specific formatting (colors, etc.)
+    exports.formatArgs.call(self, args);
+
+    var logFn = debug.log || exports.log || console.log.bind(console);
+    logFn.apply(self, args);
+  }
+
+  debug.namespace = namespace;
+  debug.enabled = exports.enabled(namespace);
+  debug.useColors = exports.useColors();
+  debug.color = selectColor(namespace);
+
+  // env-specific initialization logic for debug instances
+  if ('function' === typeof exports.init) {
+    exports.init(debug);
+  }
+
+  return debug;
+}
+
+/**
+ * Enables a debug mode by namespaces. This can include modes
+ * separated by a colon and wildcards.
+ *
+ * @param {String} namespaces
+ * @api public
+ */
+
+function enable(namespaces) {
+  exports.save(namespaces);
+
+  exports.names = [];
+  exports.skips = [];
+
+  var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
+  var len = split.length;
+
+  for (var i = 0; i < len; i++) {
+    if (!split[i]) continue; // ignore empty strings
+    namespaces = split[i].replace(/\*/g, '.*?');
+    if (namespaces[0] === '-') {
+      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+    } else {
+      exports.names.push(new RegExp('^' + namespaces + '$'));
+    }
+  }
+}
+
+/**
+ * Disable debug output.
+ *
+ * @api public
+ */
+
+function disable() {
+  exports.enable('');
+}
+
+/**
+ * Returns true if the given mode name is enabled, false otherwise.
+ *
+ * @param {String} name
+ * @return {Boolean}
+ * @api public
+ */
+
+function enabled(name) {
+  var i, len;
+  for (i = 0, len = exports.skips.length; i < len; i++) {
+    if (exports.skips[i].test(name)) {
+      return false;
+    }
+  }
+  for (i = 0, len = exports.names.length; i < len; i++) {
+    if (exports.names[i].test(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Coerce `val`.
+ *
+ * @param {Mixed} val
+ * @return {Mixed}
+ * @api private
+ */
+
+function coerce(val) {
+  if (val instanceof Error) return val.stack || val.message;
+  return val;
+}
+
+},{"ms":65}],16:[function(require,module,exports){
 (function (Buffer){
 module.exports = Peer
 
@@ -3657,7 +3624,7 @@ Peer.prototype._transformConstraints = function (constraints) {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22,"debug":33,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],17:[function(require,module,exports){
+},{"buffer":22,"debug":14,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],17:[function(require,module,exports){
 (function (Buffer){
 /* global Blob, FileReader */
 
@@ -5843,7 +5810,7 @@ var catNames = require('./cat-names.json');
 exports.all = catNames;
 exports.random = uniqueRandomArray(catNames);
 
-},{"./cat-names.json":24,"unique-random-array":135}],26:[function(require,module,exports){
+},{"./cat-names.json":24,"unique-random-array":132}],26:[function(require,module,exports){
 module.exports = ChunkStoreWriteStream
 
 var BlockStream = require('block-stream2')
@@ -6520,11 +6487,11 @@ function getStreamStream (readable, file) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":21,"bencode":32,"block-stream2":18,"buffer":22,"filestream/read":39,"flatten":40,"fs":20,"is-file":51,"junk":55,"multistream":66,"once":68,"path":75,"piece-length":76,"readable-stream":94,"run-parallel":98,"simple-sha1":104,"xtend":163}],30:[function(require,module,exports){
+},{"_process":21,"bencode":32,"block-stream2":18,"buffer":22,"filestream/read":39,"flatten":40,"fs":20,"is-file":51,"junk":55,"multistream":66,"once":68,"path":75,"piece-length":76,"readable-stream":94,"run-parallel":100,"simple-sha1":106,"xtend":156}],30:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
 },{"buffer":22,"dup":7}],31:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8,"safe-buffer":100}],32:[function(require,module,exports){
+},{"dup":8,"safe-buffer":102}],32:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
 },{"./decode":30,"./encode":31,"dup":9}],33:[function(require,module,exports){
 (function (process){
@@ -6550,12 +6517,17 @@ exports.storage = 'undefined' != typeof chrome
  */
 
 exports.colors = [
-  'lightseagreen',
-  'forestgreen',
-  'goldenrod',
-  'dodgerblue',
-  'darkorchid',
-  'crimson'
+  '#0000CC', '#0000FF', '#0033CC', '#0033FF', '#0066CC', '#0066FF', '#0099CC',
+  '#0099FF', '#00CC00', '#00CC33', '#00CC66', '#00CC99', '#00CCCC', '#00CCFF',
+  '#3300CC', '#3300FF', '#3333CC', '#3333FF', '#3366CC', '#3366FF', '#3399CC',
+  '#3399FF', '#33CC00', '#33CC33', '#33CC66', '#33CC99', '#33CCCC', '#33CCFF',
+  '#6600CC', '#6600FF', '#6633CC', '#6633FF', '#66CC00', '#66CC33', '#9900CC',
+  '#9900FF', '#9933CC', '#9933FF', '#99CC00', '#99CC33', '#CC0000', '#CC0033',
+  '#CC0066', '#CC0099', '#CC00CC', '#CC00FF', '#CC3300', '#CC3333', '#CC3366',
+  '#CC3399', '#CC33CC', '#CC33FF', '#CC6600', '#CC6633', '#CC9900', '#CC9933',
+  '#CCCC00', '#CCCC33', '#FF0000', '#FF0033', '#FF0066', '#FF0099', '#FF00CC',
+  '#FF00FF', '#FF3300', '#FF3333', '#FF3366', '#FF3399', '#FF33CC', '#FF33FF',
+  '#FF6600', '#FF6633', '#FF9900', '#FF9933', '#FFCC00', '#FFCC33'
 ];
 
 /**
@@ -6572,6 +6544,11 @@ function useColors() {
   // explicitly
   if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
     return true;
+  }
+
+  // Internet Explorer and Edge do not support colors.
+  if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+    return false;
   }
 
   // is webkit? http://stackoverflow.com/a/16459606/376773
@@ -6732,6 +6709,11 @@ exports.enabled = enabled;
 exports.humanize = require('ms');
 
 /**
+ * Active `debug` instances.
+ */
+exports.instances = [];
+
+/**
  * The currently active debug mode names, and names to skip.
  */
 
@@ -6745,12 +6727,6 @@ exports.skips = [];
  */
 
 exports.formatters = {};
-
-/**
- * Previous log timestamp.
- */
-
-var prevTime;
 
 /**
  * Select a color.
@@ -6779,6 +6755,8 @@ function selectColor(namespace) {
  */
 
 function createDebug(namespace) {
+
+  var prevTime;
 
   function debug() {
     // disabled?
@@ -6836,13 +6814,26 @@ function createDebug(namespace) {
   debug.enabled = exports.enabled(namespace);
   debug.useColors = exports.useColors();
   debug.color = selectColor(namespace);
+  debug.destroy = destroy;
 
   // env-specific initialization logic for debug instances
   if ('function' === typeof exports.init) {
     exports.init(debug);
   }
 
+  exports.instances.push(debug);
+
   return debug;
+}
+
+function destroy () {
+  var index = exports.instances.indexOf(this);
+  if (index !== -1) {
+    exports.instances.splice(index, 1);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /**
@@ -6859,10 +6850,11 @@ function enable(namespaces) {
   exports.names = [];
   exports.skips = [];
 
+  var i;
   var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
   var len = split.length;
 
-  for (var i = 0; i < len; i++) {
+  for (i = 0; i < len; i++) {
     if (!split[i]) continue; // ignore empty strings
     namespaces = split[i].replace(/\*/g, '.*?');
     if (namespaces[0] === '-') {
@@ -6870,6 +6862,11 @@ function enable(namespaces) {
     } else {
       exports.names.push(new RegExp('^' + namespaces + '$'));
     }
+  }
+
+  for (i = 0; i < exports.instances.length; i++) {
+    var instance = exports.instances[i];
+    instance.enabled = exports.enabled(instance.namespace);
   }
 }
 
@@ -6892,6 +6889,9 @@ function disable() {
  */
 
 function enabled(name) {
+  if (name[name.length - 1] === '*') {
+    return true;
+  }
   var i, len;
   for (i = 0, len = exports.skips.length; i < len; i++) {
     if (exports.skips[i].test(name)) {
@@ -7120,7 +7120,7 @@ function toArray (list) {
   return Array.prototype.slice.call(list || [], 0)
 }
 
-},{"flatten":40,"run-parallel":98}],37:[function(require,module,exports){
+},{"flatten":40,"run-parallel":100}],37:[function(require,module,exports){
 var once = require('once');
 
 var noop = function() {};
@@ -7607,7 +7607,7 @@ FileReadStream.prototype.destroy = function() {
   this.reader = null;
 }
 
-},{"inherits":48,"readable-stream":94,"typedarray-to-buffer":132}],40:[function(require,module,exports){
+},{"inherits":48,"readable-stream":94,"typedarray-to-buffer":129}],40:[function(require,module,exports){
 module.exports = function flatten(list, depth) {
   depth = (typeof depth == 'number') ? depth : Infinity;
 
@@ -7811,7 +7811,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":109,"url":138}],46:[function(require,module,exports){
+},{"http":109,"url":135}],46:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -8270,7 +8270,7 @@ function magnetURIEncode (obj) {
   return result
 }
 
-},{"safe-buffer":100,"thirty-two":117,"uniq":134,"xtend":163}],57:[function(require,module,exports){
+},{"safe-buffer":102,"thirty-two":117,"uniq":131,"xtend":156}],57:[function(require,module,exports){
 module.exports = MediaElementWrapper
 
 var inherits = require('inherits')
@@ -9819,7 +9819,7 @@ Box.encodingLength = function (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./boxes":59,"buffer":22,"uint64be":133}],62:[function(require,module,exports){
+},{"./boxes":59,"buffer":22,"uint64be":130}],62:[function(require,module,exports){
 (function (Buffer){
 var stream = require('readable-stream')
 var inherits = require('inherits')
@@ -10506,7 +10506,7 @@ function onceStrict (fn) {
   return f
 }
 
-},{"wrappy":161}],69:[function(require,module,exports){
+},{"wrappy":154}],69:[function(require,module,exports){
 var trim = require('trim')
   , forEach = require('for-each')
   , isArray = function(arg) {
@@ -10538,7 +10538,7 @@ module.exports = function (headers) {
 
   return result
 }
-},{"for-each":41,"trim":131}],70:[function(require,module,exports){
+},{"for-each":41,"trim":128}],70:[function(require,module,exports){
 (function (Buffer){
 module.exports = decodeTorrentFile
 module.exports.decode = decodeTorrentFile
@@ -10689,11 +10689,11 @@ function ensure (bool, fieldName) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bencode":73,"buffer":22,"path":75,"simple-sha1":104,"uniq":134}],71:[function(require,module,exports){
+},{"bencode":73,"buffer":22,"path":75,"simple-sha1":106,"uniq":131}],71:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
 },{"buffer":22,"dup":7}],72:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8,"safe-buffer":100}],73:[function(require,module,exports){
+},{"dup":8,"safe-buffer":102}],73:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
 },{"./decode":71,"./encode":72,"dup":9}],74:[function(require,module,exports){
 (function (process,Buffer){
@@ -10809,7 +10809,7 @@ function isBlob (obj) {
 ;(function () { Buffer.alloc(0) })()
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":21,"blob-to-buffer":17,"buffer":22,"fs":20,"magnet-uri":56,"parse-torrent-file":70,"simple-get":102}],75:[function(require,module,exports){
+},{"_process":21,"blob-to-buffer":17,"buffer":22,"fs":20,"magnet-uri":56,"parse-torrent-file":70,"simple-get":104}],75:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -11958,7 +11958,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":21,"safe-buffer":100}],85:[function(require,module,exports){
+},{"_process":21,"safe-buffer":102}],85:[function(require,module,exports){
 /*
 Instance of writable stream.
 
@@ -13276,7 +13276,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":86,"./internal/streams/BufferList":91,"./internal/streams/destroy":92,"./internal/streams/stream":93,"_process":21,"core-util-is":28,"events":38,"inherits":48,"isarray":54,"process-nextick-args":77,"safe-buffer":100,"string_decoder/":116,"util":19}],89:[function(require,module,exports){
+},{"./_stream_duplex":86,"./internal/streams/BufferList":91,"./internal/streams/destroy":92,"./internal/streams/stream":93,"_process":21,"core-util-is":28,"events":38,"inherits":48,"isarray":54,"process-nextick-args":77,"safe-buffer":102,"string_decoder/":116,"util":19}],89:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -14171,7 +14171,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":86,"./internal/streams/destroy":92,"./internal/streams/stream":93,"_process":21,"core-util-is":28,"inherits":48,"process-nextick-args":77,"safe-buffer":100,"util-deprecate":146}],91:[function(require,module,exports){
+},{"./_stream_duplex":86,"./internal/streams/destroy":92,"./internal/streams/stream":93,"_process":21,"core-util-is":28,"inherits":48,"process-nextick-args":77,"safe-buffer":102,"util-deprecate":141}],91:[function(require,module,exports){
 'use strict';
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -14251,7 +14251,7 @@ if (util && util.inspect && util.inspect.custom) {
     return this.constructor.name + ' ' + obj;
   };
 }
-},{"safe-buffer":100,"util":19}],92:[function(require,module,exports){
+},{"safe-buffer":102,"util":19}],92:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -14690,7 +14690,7 @@ function parseOpts (opts) {
   if (opts.maxBlobLength == null) opts.maxBlobLength = MAX_BLOB_LENGTH
 }
 
-},{"./lib/mime.json":96,"debug":33,"is-ascii":49,"mediasource":57,"path":75,"stream-to-blob-url":113,"videostream":148}],96:[function(require,module,exports){
+},{"./lib/mime.json":96,"debug":97,"is-ascii":49,"mediasource":57,"path":75,"stream-to-blob-url":113,"videostream":143}],96:[function(require,module,exports){
 module.exports={
   ".3gp": "video/3gpp",
   ".aac": "audio/aac",
@@ -14774,6 +14774,10 @@ module.exports={
 }
 
 },{}],97:[function(require,module,exports){
+arguments[4][14][0].apply(exports,arguments)
+},{"./debug":98,"_process":21,"dup":14}],98:[function(require,module,exports){
+arguments[4][15][0].apply(exports,arguments)
+},{"dup":15,"ms":65}],99:[function(require,module,exports){
 (function (process){
 module.exports = function (tasks, limit, cb) {
   if (typeof limit !== 'number') throw new Error('second argument must be a Number')
@@ -14839,7 +14843,7 @@ module.exports = function (tasks, limit, cb) {
 }
 
 }).call(this,require('_process'))
-},{"_process":21}],98:[function(require,module,exports){
+},{"_process":21}],100:[function(require,module,exports){
 (function (process){
 module.exports = function (tasks, cb) {
   var results, pending, keys
@@ -14889,7 +14893,7 @@ module.exports = function (tasks, cb) {
 }
 
 }).call(this,require('_process'))
-},{"_process":21}],99:[function(require,module,exports){
+},{"_process":21}],101:[function(require,module,exports){
 (function (global){
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Rusha = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 var bundleFn = arguments[3];
@@ -15618,7 +15622,7 @@ module.exports = function () {
 },{"./rusha":6}]},{},[5])(5)
 });
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],100:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -15682,7 +15686,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":22}],101:[function(require,module,exports){
+},{"buffer":22}],103:[function(require,module,exports){
 (function (Buffer){
 module.exports = function (stream, cb) {
   var chunks = []
@@ -15700,7 +15704,7 @@ module.exports = function (stream, cb) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22}],102:[function(require,module,exports){
+},{"buffer":22}],104:[function(require,module,exports){
 (function (Buffer){
 module.exports = simpleGet
 
@@ -15810,7 +15814,7 @@ function parseOptsUrl (opts) {
 function isStream (obj) { return typeof obj.pipe === 'function' }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22,"decompress-response":19,"http":109,"https":45,"once":68,"querystring":82,"simple-concat":101,"url":138}],103:[function(require,module,exports){
+},{"buffer":22,"decompress-response":19,"http":109,"https":45,"once":68,"querystring":82,"simple-concat":103,"url":135}],105:[function(require,module,exports){
 (function (Buffer){
 module.exports = Peer
 
@@ -15901,7 +15905,10 @@ function Peer (opts) {
   self._isReactNativeWebrtc = typeof self._pc._peerConnectionId === 'number'
 
   self._pc.oniceconnectionstatechange = function () {
-    self._onIceConnectionStateChange()
+    self._onIceStateChange()
+  }
+  self._pc.onicegatheringstatechange = function () {
+    self._onIceStateChange()
   }
   self._pc.onsignalingstatechange = function () {
     self._onSignalingStateChange()
@@ -15909,6 +15916,11 @@ function Peer (opts) {
   self._pc.onicecandidate = function (event) {
     self._onIceCandidate(event)
   }
+
+  // Other spec events, unused by this implementation:
+  // - onconnectionstatechange
+  // - onicecandidateerror
+  // - onfingerprintfailure
 
   if (self.initiator) {
     var createdOffer = false
@@ -16000,7 +16012,7 @@ Peer.prototype.signal = function (data) {
   self._debug('signal()')
 
   if (data.candidate) {
-    if (self._pc.remoteDescription) self._addIceCandidate(data.candidate)
+    if (self._pc.remoteDescription && self._pc.remoteDescription.type) self._addIceCandidate(data.candidate)
     else self._pendingCandidates.push(data.candidate)
   }
   if (data.sdp) {
@@ -16013,10 +16025,10 @@ Peer.prototype.signal = function (data) {
       self._pendingCandidates = []
 
       if (self._pc.remoteDescription.type === 'offer') self._createAnswer()
-    }, function (err) { self._onError(err) })
+    }, function (err) { self.destroy(err) })
   }
   if (!data.sdp && !data.candidate) {
-    self._destroy(new Error('signal() called with invalid signal data'))
+    self.destroy(new Error('signal() called with invalid signal data'))
   }
 }
 
@@ -16026,10 +16038,10 @@ Peer.prototype._addIceCandidate = function (candidate) {
     self._pc.addIceCandidate(
       new self._wrtc.RTCIceCandidate(candidate),
       noop,
-      function (err) { self._onError(err) }
+      function (err) { self.destroy(err) }
     )
   } catch (err) {
-    self._destroy(new Error('error adding candidate: ' + err.message))
+    self.destroy(new Error('error adding candidate: ' + err.message))
   }
 }
 
@@ -16039,27 +16051,22 @@ Peer.prototype._addIceCandidate = function (candidate) {
  */
 Peer.prototype.send = function (chunk) {
   var self = this
-
-  // HACK: `wrtc` module crashes on Node.js Buffer, so convert to Uint8Array
-  // See: https://github.com/feross/simple-peer/issues/60
-  if (self._isWrtc && Buffer.isBuffer(chunk)) {
-    chunk = new Uint8Array(chunk)
-  }
-
   self._channel.send(chunk)
 }
 
-Peer.prototype.destroy = function (onclose) {
+// TODO: Delete this method once readable-stream is updated to contain a default
+// implementation of destroy() that automatically calls _destroy()
+// See: https://github.com/nodejs/readable-stream/issues/283
+Peer.prototype.destroy = function (err) {
   var self = this
-  self._destroy(null, onclose)
+  self._destroy(err, function () {})
 }
 
-Peer.prototype._destroy = function (err, onclose) {
+Peer.prototype._destroy = function (err, cb) {
   var self = this
   if (self.destroyed) return
-  if (onclose) self.once('close', onclose)
 
-  self._debug('destroy (error: %s)', err && err.message)
+  self._debug('destroy (error: %s)', err && (err.message || err))
 
   self.readable = self.writable = false
 
@@ -16088,6 +16095,7 @@ Peer.prototype._destroy = function (err, onclose) {
     } catch (err) {}
 
     self._pc.oniceconnectionstatechange = null
+    self._pc.onicegatheringstatechange = null
     self._pc.onsignalingstatechange = null
     self._pc.onicecandidate = null
     if ('addTrack' in self._pc) {
@@ -16107,16 +16115,25 @@ Peer.prototype._destroy = function (err, onclose) {
     self._channel.onmessage = null
     self._channel.onopen = null
     self._channel.onclose = null
+    self._channel.onerror = null
   }
   self._pc = null
   self._channel = null
 
   if (err) self.emit('error', err)
   self.emit('close')
+  cb()
 }
 
 Peer.prototype._setupData = function (event) {
   var self = this
+  if (!event.channel) {
+    // In some situations `pc.createDataChannel()` returns `undefined` (in wrtc),
+    // which is invalid behavior. Handle it gracefully.
+    // See: https://github.com/feross/simple-peer/issues/163
+    return self.destroy(new Error('Data channel event is missing `channel` property'))
+  }
+
   self._channel = event.channel
   self._channel.binaryType = 'arraybuffer'
 
@@ -16138,6 +16155,9 @@ Peer.prototype._setupData = function (event) {
   self._channel.onclose = function () {
     self._onChannelClose()
   }
+  self._channel.onerror = function (err) {
+    self.destroy(err)
+  }
 }
 
 Peer.prototype._read = function () {}
@@ -16150,7 +16170,7 @@ Peer.prototype._write = function (chunk, encoding, cb) {
     try {
       self.send(chunk)
     } catch (err) {
-      return self._onError(err)
+      return self.destroy(err)
     }
     if (self._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
       self._debug('start backpressure: bufferedAmount %d', self._channel.bufferedAmount)
@@ -16181,8 +16201,8 @@ Peer.prototype._onFinish = function () {
   // TODO: is there a more reliable way to accomplish this?
   function destroySoon () {
     setTimeout(function () {
-      self._destroy()
-    }, 100)
+      self.destroy()
+    }, 1000)
   }
 }
 
@@ -16193,8 +16213,19 @@ Peer.prototype._createOffer = function () {
   self._pc.createOffer(function (offer) {
     if (self.destroyed) return
     offer.sdp = self.sdpTransform(offer.sdp)
-    self._pc.setLocalDescription(offer, noop, function (err) { self._onError(err) })
-    var sendOffer = function () {
+    self._pc.setLocalDescription(offer, onSuccess, onError)
+
+    function onSuccess () {
+      if (self.destroyed) return
+      if (self.trickle || self._iceComplete) sendOffer()
+      else self.once('_iceComplete', sendOffer) // wait for candidates
+    }
+
+    function onError (err) {
+      self.destroy(err)
+    }
+
+    function sendOffer () {
       var signal = self._pc.localDescription || offer
       self._debug('signal')
       self.emit('signal', {
@@ -16202,9 +16233,7 @@ Peer.prototype._createOffer = function () {
         sdp: signal.sdp
       })
     }
-    if (self.trickle || self._iceComplete) sendOffer()
-    else self.once('_iceComplete', sendOffer) // wait for candidates
-  }, function (err) { self._onError(err) }, self.offerConstraints)
+  }, function (err) { self.destroy(err) }, self.offerConstraints)
 }
 
 Peer.prototype._createAnswer = function () {
@@ -16214,9 +16243,17 @@ Peer.prototype._createAnswer = function () {
   self._pc.createAnswer(function (answer) {
     if (self.destroyed) return
     answer.sdp = self.sdpTransform(answer.sdp)
-    self._pc.setLocalDescription(answer, noop, function (err) { self._onError(err) })
-    if (self.trickle || self._iceComplete) sendAnswer()
-    else self.once('_iceComplete', sendAnswer)
+    self._pc.setLocalDescription(answer, onSuccess, onError)
+
+    function onSuccess () {
+      if (self.destroyed) return
+      if (self.trickle || self._iceComplete) sendAnswer()
+      else self.once('_iceComplete', sendAnswer)
+    }
+
+    function onError (err) {
+      self.destroy(err)
+    }
 
     function sendAnswer () {
       var signal = self._pc.localDescription || answer
@@ -16226,16 +16263,22 @@ Peer.prototype._createAnswer = function () {
         sdp: signal.sdp
       })
     }
-  }, function (err) { self._onError(err) }, self.answerConstraints)
+  }, function (err) { self.destroy(err) }, self.answerConstraints)
 }
 
-Peer.prototype._onIceConnectionStateChange = function () {
+Peer.prototype._onIceStateChange = function () {
   var self = this
   if (self.destroyed) return
-  var iceGatheringState = self._pc.iceGatheringState
   var iceConnectionState = self._pc.iceConnectionState
-  self._debug('iceConnectionStateChange %s %s', iceGatheringState, iceConnectionState)
-  self.emit('iceConnectionStateChange', iceGatheringState, iceConnectionState)
+  var iceGatheringState = self._pc.iceGatheringState
+
+  self._debug(
+    'iceStateChange (connection: %s) (gathering: %s)',
+    iceConnectionState,
+    iceGatheringState
+  )
+  self.emit('iceStateChange', iceConnectionState, iceGatheringState)
+
   if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
     clearTimeout(self._reconnectTimeout)
     self._pcReady = true
@@ -16246,17 +16289,17 @@ Peer.prototype._onIceConnectionStateChange = function () {
       // If user has set `opt.reconnectTimer`, allow time for ICE to attempt a reconnect
       clearTimeout(self._reconnectTimeout)
       self._reconnectTimeout = setTimeout(function () {
-        self._destroy()
+        self.destroy()
       }, self.reconnectTimer)
     } else {
-      self._destroy()
+      self.destroy()
     }
   }
   if (iceConnectionState === 'failed') {
-    self._destroy(new Error('Ice connection failed.'))
+    self.destroy(new Error('Ice connection failed.'))
   }
   if (iceConnectionState === 'closed') {
-    self._destroy()
+    self.destroy()
   }
 }
 
@@ -16270,8 +16313,8 @@ Peer.prototype.getStats = function (cb) {
       res.forEach(function (report) {
         reports.push(report)
       })
-      cb(reports)
-    }, function (err) { self._onError(err) })
+      cb(null, reports)
+    }, function (err) { cb(err) })
 
   // Two-parameter callback-based getStats() (deprecated, former standard)
   } else if (self._isReactNativeWebrtc) {
@@ -16280,12 +16323,15 @@ Peer.prototype.getStats = function (cb) {
       res.forEach(function (report) {
         reports.push(report)
       })
-      cb(reports)
-    }, function (err) { self._onError(err) })
+      cb(null, reports)
+    }, function (err) { cb(err) })
 
   // Single-parameter callback-based getStats() (non-standard)
   } else if (self._pc.getStats.length > 0) {
     self._pc.getStats(function (res) {
+      // If we destroy connection in `connect` callback this code might happen to run when actual connection is already closed
+      if (self.destroyed) return
+
       var reports = []
       res.result().forEach(function (result) {
         var report = {}
@@ -16297,13 +16343,13 @@ Peer.prototype.getStats = function (cb) {
         report.timestamp = result.timestamp
         reports.push(report)
       })
-      cb(reports)
-    }, function (err) { self._onError(err) })
+      cb(null, reports)
+    }, function (err) { cb(err) })
 
   // Unknown browser, skip getStats() since it's anyone's guess which style of
   // getStats() they implement.
   } else {
-    cb([])
+    cb(null, [])
   }
 }
 
@@ -16311,118 +16357,141 @@ Peer.prototype._maybeReady = function () {
   var self = this
   self._debug('maybeReady pc %s channel %s', self._pcReady, self._channelReady)
   if (self.connected || self._connecting || !self._pcReady || !self._channelReady) return
+
   self._connecting = true
 
-  self.getStats(function (items) {
-    self._connecting = false
-    self.connected = true
+  // HACK: We can't rely on order here, for details see https://github.com/js-platform/node-webrtc/issues/339
+  function findCandidatePair () {
+    if (self.destroyed) return
 
-    var remoteCandidates = {}
-    var localCandidates = {}
-    var candidatePairs = {}
+    self.getStats(function (err, items) {
+      if (self.destroyed) return
 
-    items.forEach(function (item) {
-      // TODO: Once all browsers support the hyphenated stats report types, remove
-      // the non-hypenated ones
-      if (item.type === 'remotecandidate' || item.type === 'remote-candidate') {
-        remoteCandidates[item.id] = item
+      // Treat getStats error as non-fatal. It's not essential.
+      if (err) items = []
+
+      var remoteCandidates = {}
+      var localCandidates = {}
+      var candidatePairs = {}
+      var foundSelectedCandidatePair = false
+
+      items.forEach(function (item) {
+        // TODO: Once all browsers support the hyphenated stats report types, remove
+        // the non-hypenated ones
+        if (item.type === 'remotecandidate' || item.type === 'remote-candidate') {
+          remoteCandidates[item.id] = item
+        }
+        if (item.type === 'localcandidate' || item.type === 'local-candidate') {
+          localCandidates[item.id] = item
+        }
+        if (item.type === 'candidatepair' || item.type === 'candidate-pair') {
+          candidatePairs[item.id] = item
+        }
+      })
+
+      items.forEach(function (item) {
+        // Spec-compliant
+        if (item.type === 'transport') {
+          setSelectedCandidatePair(candidatePairs[item.selectedCandidatePairId])
+        }
+
+        // Old implementations
+        if (
+          (item.type === 'googCandidatePair' && item.googActiveConnection === 'true') ||
+          ((item.type === 'candidatepair' || item.type === 'candidate-pair') && item.selected)
+        ) {
+          setSelectedCandidatePair(item)
+        }
+      })
+
+      function setSelectedCandidatePair (selectedCandidatePair) {
+        foundSelectedCandidatePair = true
+
+        var local = localCandidates[selectedCandidatePair.localCandidateId]
+
+        if (local && local.ip) {
+          // Spec
+          self.localAddress = local.ip
+          self.localPort = Number(local.port)
+        } else if (local && local.ipAddress) {
+          // Firefox
+          self.localAddress = local.ipAddress
+          self.localPort = Number(local.portNumber)
+        } else if (typeof selectedCandidatePair.googLocalAddress === 'string') {
+          // TODO: remove this once Chrome 58 is released
+          local = selectedCandidatePair.googLocalAddress.split(':')
+          self.localAddress = local[0]
+          self.localPort = Number(local[1])
+        }
+
+        var remote = remoteCandidates[selectedCandidatePair.remoteCandidateId]
+
+        if (remote && remote.ip) {
+          // Spec
+          self.remoteAddress = remote.ip
+          self.remotePort = Number(remote.port)
+        } else if (remote && remote.ipAddress) {
+          // Firefox
+          self.remoteAddress = remote.ipAddress
+          self.remotePort = Number(remote.portNumber)
+        } else if (typeof selectedCandidatePair.googRemoteAddress === 'string') {
+          // TODO: remove this once Chrome 58 is released
+          remote = selectedCandidatePair.googRemoteAddress.split(':')
+          self.remoteAddress = remote[0]
+          self.remotePort = Number(remote[1])
+        }
+        self.remoteFamily = 'IPv4'
+
+        self._debug(
+          'connect local: %s:%s remote: %s:%s',
+          self.localAddress, self.localPort, self.remoteAddress, self.remotePort
+        )
       }
-      if (item.type === 'localcandidate' || item.type === 'local-candidate') {
-        localCandidates[item.id] = item
+
+      // Ignore candidate pair selection in browsers like Safari 11 that do not have any local or remote candidates
+      // But wait until at least 1 candidate pair is available
+      if (!foundSelectedCandidatePair && (!Object.keys(candidatePairs).length || Object.keys(localCandidates).length)) {
+        setTimeout(findCandidatePair, 100)
+        return
+      } else {
+        self._connecting = false
+        self.connected = true
       }
-      if (item.type === 'candidatepair' || item.type === 'candidate-pair') {
-        candidatePairs[item.id] = item
+
+      if (self._chunk) {
+        try {
+          self.send(self._chunk)
+        } catch (err) {
+          return self.destroy(err)
+        }
+        self._chunk = null
+        self._debug('sent chunk from "write before connect"')
+
+        var cb = self._cb
+        self._cb = null
+        cb(null)
       }
+
+      // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
+      // fallback to using setInterval to implement backpressure.
+      if (typeof self._channel.bufferedAmountLowThreshold !== 'number') {
+        self._interval = setInterval(function () { self._onInterval() }, 150)
+        if (self._interval.unref) self._interval.unref()
+      }
+
+      self._debug('connect')
+      self.emit('connect')
     })
-
-    items.forEach(function (item) {
-      // Spec-compliant
-      if (item.type === 'transport') {
-        setSelectedCandidatePair(candidatePairs[item.selectedCandidatePairId])
-      }
-
-      // Old implementations
-      if (
-        (item.type === 'googCandidatePair' && item.googActiveConnection === 'true') ||
-        ((item.type === 'candidatepair' || item.type === 'candidate-pair') && item.selected)
-      ) {
-        setSelectedCandidatePair(item)
-      }
-    })
-
-    function setSelectedCandidatePair (selectedCandidatePair) {
-      var local = localCandidates[selectedCandidatePair.localCandidateId]
-
-      if (local && local.ip) {
-        // Spec
-        self.localAddress = local.ip
-        self.localPort = Number(local.port)
-      } else if (local && local.ipAddress) {
-        // Firefox
-        self.localAddress = local.ipAddress
-        self.localPort = Number(local.portNumber)
-      } else if (typeof selectedCandidatePair.googLocalAddress === 'string') {
-        // TODO: remove this once Chrome 58 is released
-        local = selectedCandidatePair.googLocalAddress.split(':')
-        self.localAddress = local[0]
-        self.localPort = Number(local[1])
-      }
-
-      var remote = remoteCandidates[selectedCandidatePair.remoteCandidateId]
-
-      if (remote && remote.ip) {
-        // Spec
-        self.remoteAddress = remote.ip
-        self.remotePort = Number(remote.port)
-      } else if (remote && remote.ipAddress) {
-        // Firefox
-        self.remoteAddress = remote.ipAddress
-        self.remotePort = Number(remote.portNumber)
-      } else if (typeof selectedCandidatePair.googRemoteAddress === 'string') {
-        // TODO: remove this once Chrome 58 is released
-        remote = selectedCandidatePair.googRemoteAddress.split(':')
-        self.remoteAddress = remote[0]
-        self.remotePort = Number(remote[1])
-      }
-      self.remoteFamily = 'IPv4'
-
-      self._debug(
-        'connect local: %s:%s remote: %s:%s',
-        self.localAddress, self.localPort, self.remoteAddress, self.remotePort
-      )
-    }
-
-    if (self._chunk) {
-      try {
-        self.send(self._chunk)
-      } catch (err) {
-        return self._onError(err)
-      }
-      self._chunk = null
-      self._debug('sent chunk from "write before connect"')
-
-      var cb = self._cb
-      self._cb = null
-      cb(null)
-    }
-
-    // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
-    // fallback to using setInterval to implement backpressure.
-    if (typeof self._channel.bufferedAmountLowThreshold !== 'number') {
-      self._interval = setInterval(function () { self._onInterval() }, 150)
-      if (self._interval.unref) self._interval.unref()
-    }
-
-    self._debug('connect')
-    self.emit('connect')
-  })
+  }
+  findCandidatePair()
 }
 
 Peer.prototype._onInterval = function () {
-  if (!this._cb || !this._channel || this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+  var self = this
+  if (!self._cb || !self._channel || self._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
     return
   }
-  this._onChannelBufferedAmountLow()
+  self._onChannelBufferedAmountLow()
 }
 
 Peer.prototype._onSignalingStateChange = function () {
@@ -16453,7 +16522,7 @@ Peer.prototype._onChannelMessage = function (event) {
   var self = this
   if (self.destroyed) return
   var data = event.data
-  if (data instanceof ArrayBuffer) data = new Buffer(data)
+  if (data instanceof ArrayBuffer) data = Buffer.from(data)
   self.push(data)
 }
 
@@ -16478,7 +16547,7 @@ Peer.prototype._onChannelClose = function () {
   var self = this
   if (self.destroyed) return
   self._debug('on channel close')
-  self._destroy()
+  self.destroy()
 }
 
 Peer.prototype._onAddStream = function (event) {
@@ -16496,13 +16565,6 @@ Peer.prototype._onTrack = function (event) {
   if (self._previousStreams.indexOf(id) !== -1) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
   self._previousStreams.push(id)
   self.emit('stream', event.streams[0])
-}
-
-Peer.prototype._onError = function (err) {
-  var self = this
-  if (self.destroyed) return
-  self._debug('error %s', err.message || err)
-  self._destroy(err)
 }
 
 Peer.prototype._debug = function () {
@@ -16564,7 +16626,7 @@ Peer.prototype._transformConstraints = function (constraints) {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22,"debug":33,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],104:[function(require,module,exports){
+},{"buffer":22,"debug":33,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],106:[function(require,module,exports){
 var Rusha = require('rusha')
 
 var rusha = new Rusha
@@ -16627,7 +16689,7 @@ function hex (buf) {
 module.exports = sha1
 module.exports.sync = sha1sync
 
-},{"rusha":99}],105:[function(require,module,exports){
+},{"rusha":101}],107:[function(require,module,exports){
 (function (process){
 /* global WebSocket */
 
@@ -16894,11 +16956,7 @@ Socket.prototype._debug = function () {
 }
 
 }).call(this,require('_process'))
-},{"_process":21,"debug":106,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":100,"ws":19}],106:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./debug":107,"_process":21,"dup":10}],107:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"dup":11,"ms":65}],108:[function(require,module,exports){
+},{"_process":21,"debug":33,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":102,"ws":19}],108:[function(require,module,exports){
 var tick = 1
 var maxTick = 65535
 var resolution = 4
@@ -17021,7 +17079,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":111,"./lib/response":112,"builtin-status-codes":23,"url":138,"xtend":163}],110:[function(require,module,exports){
+},{"./lib/request":111,"./lib/response":112,"builtin-status-codes":23,"url":135,"xtend":156}],110:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -17973,7 +18031,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":100}],117:[function(require,module,exports){
+},{"safe-buffer":102}],117:[function(require,module,exports){
 /*                                                                              
 Copyright (c) 2011, Chris Umbel
 
@@ -18134,38 +18192,65 @@ exports.decode = function(encoded) {
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":22}],119:[function(require,module,exports){
-var isError = function(err) { // inlined from util so this works in the browser
-	return Object.prototype.toString.call(err) === '[object Error]';
-};
+(function (process){
+'use strict'
 
-var thunky = function(fn) {
-	var run = function(callback) {
-		var stack = [callback];
+var nextTick = nextTickArgs
+process.nextTick(upgrade, 42) // pass 42 and see if upgrade is called with it
 
-		state = function(callback) {
-			stack.push(callback);
-		};
+module.exports = thunky
 
-		fn(function(err) {
-			var args = arguments;
-			var apply = function(callback) {
-				if (callback) callback.apply(null, args);
-			};
+function thunky (fn) {
+  var state = run
+  return thunk
 
-			state = isError(err) ? run : apply;
-			while (stack.length) apply(stack.shift());
-		});
-	};
+  function thunk (callback) {
+    state(callback || noop)
+  }
 
-	var state = run;
+  function run (callback) {
+    var stack = [callback]
+    state = wait
+    fn(done)
 
-	return function(callback) {
-		state(callback);
-	};
-};
+    function wait (callback) {
+      stack.push(callback)
+    }
 
-module.exports = thunky;
-},{}],120:[function(require,module,exports){
+    function done (err) {
+      var args = arguments
+      state = isError(err) ? run : finished
+      while (stack.length) finished(stack.shift())
+
+      function finished (callback) {
+        nextTick(apply, callback, args)
+      }
+    }
+  }
+}
+
+function isError (err) { // inlined from util so this works in the browser
+  return Object.prototype.toString.call(err) === '[object Error]'
+}
+
+function noop () {}
+
+function apply (callback, args) {
+  callback.apply(null, args)
+}
+
+function upgrade (val) {
+  if (val === 42) nextTick = process.nextTick
+}
+
+function nextTickArgs (fn, a, b) {
+  process.nextTick(function () {
+    fn(a, b)
+  })
+}
+
+}).call(this,require('_process'))
+},{"_process":21}],120:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -18396,7 +18481,7 @@ Discovery.prototype._dhtAnnounce = function () {
 }
 
 }).call(this,require('_process'))
-},{"_process":21,"bittorrent-dht/client":19,"bittorrent-tracker/client":122,"debug":126,"events":38,"inherits":48,"run-parallel":98,"xtend":163}],122:[function(require,module,exports){
+},{"_process":21,"bittorrent-dht/client":19,"bittorrent-tracker/client":122,"debug":33,"events":38,"inherits":48,"run-parallel":100,"xtend":156}],122:[function(require,module,exports){
 (function (process){
 module.exports = Client
 
@@ -18696,9 +18781,9 @@ Client.prototype._defaultAnnounceOpts = function (opts) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/client/http-tracker":19,"./lib/client/udp-tracker":19,"./lib/client/websocket-tracker":124,"./lib/common":125,"_process":21,"debug":126,"events":38,"inherits":48,"once":68,"run-parallel":98,"safe-buffer":100,"simple-peer":128,"uniq":134,"url":138,"xtend":163}],123:[function(require,module,exports){
-arguments[4][13][0].apply(exports,arguments)
-},{"dup":13,"events":38,"inherits":48}],124:[function(require,module,exports){
+},{"./lib/client/http-tracker":19,"./lib/client/udp-tracker":19,"./lib/client/websocket-tracker":124,"./lib/common":125,"_process":21,"debug":33,"events":38,"inherits":48,"once":68,"run-parallel":100,"safe-buffer":102,"simple-peer":105,"uniq":131,"url":135,"xtend":156}],123:[function(require,module,exports){
+arguments[4][11][0].apply(exports,arguments)
+},{"dup":11,"events":38,"inherits":48}],124:[function(require,module,exports){
 module.exports = WebSocketTracker
 
 var debug = require('debug')('bittorrent-tracker:websocket-tracker')
@@ -19144,825 +19229,9 @@ WebSocketTracker.prototype._createPeer = function (opts) {
 
 function noop () {}
 
-},{"../common":125,"./tracker":123,"debug":126,"inherits":48,"randombytes":84,"simple-peer":128,"simple-websocket":129,"xtend":163}],125:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"./common-node":19,"dup":15,"safe-buffer":100,"xtend/mutable":164}],126:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./debug":127,"_process":21,"dup":10}],127:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"dup":11,"ms":65}],128:[function(require,module,exports){
-(function (Buffer){
-module.exports = Peer
-
-var debug = require('debug')('simple-peer')
-var getBrowserRTC = require('get-browser-rtc')
-var inherits = require('inherits')
-var randombytes = require('randombytes')
-var stream = require('readable-stream')
-
-var MAX_BUFFERED_AMOUNT = 64 * 1024
-
-inherits(Peer, stream.Duplex)
-
-/**
- * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
- * Duplex stream.
- * @param {Object} opts
- */
-function Peer (opts) {
-  var self = this
-  if (!(self instanceof Peer)) return new Peer(opts)
-
-  self._id = randombytes(4).toString('hex').slice(0, 7)
-  self._debug('new peer %o', opts)
-
-  opts = Object.assign({
-    allowHalfOpen: false
-  }, opts)
-
-  stream.Duplex.call(self, opts)
-
-  self.channelName = opts.initiator
-    ? opts.channelName || randombytes(20).toString('hex')
-    : null
-
-  // Needed by _transformConstraints, so set this early
-  self._isChromium = typeof window !== 'undefined' && !!window.webkitRTCPeerConnection
-
-  self.initiator = opts.initiator || false
-  self.channelConfig = opts.channelConfig || Peer.channelConfig
-  self.config = opts.config || Peer.config
-  self.constraints = self._transformConstraints(opts.constraints || Peer.constraints)
-  self.offerConstraints = self._transformConstraints(opts.offerConstraints || {})
-  self.answerConstraints = self._transformConstraints(opts.answerConstraints || {})
-  self.reconnectTimer = opts.reconnectTimer || false
-  self.sdpTransform = opts.sdpTransform || function (sdp) { return sdp }
-  self.stream = opts.stream || false
-  self.trickle = opts.trickle !== undefined ? opts.trickle : true
-
-  self.destroyed = false
-  self.connected = false
-
-  self.remoteAddress = undefined
-  self.remoteFamily = undefined
-  self.remotePort = undefined
-  self.localAddress = undefined
-  self.localPort = undefined
-
-  self._wrtc = (opts.wrtc && typeof opts.wrtc === 'object')
-    ? opts.wrtc
-    : getBrowserRTC()
-
-  if (!self._wrtc) {
-    if (typeof window === 'undefined') {
-      throw new Error('No WebRTC support: Specify `opts.wrtc` option in this environment')
-    } else {
-      throw new Error('No WebRTC support: Not a supported browser')
-    }
-  }
-
-  self._pcReady = false
-  self._channelReady = false
-  self._iceComplete = false // ice candidate trickle done (got null candidate)
-  self._channel = null
-  self._pendingCandidates = []
-  self._previousStreams = []
-
-  self._chunk = null
-  self._cb = null
-  self._interval = null
-  self._reconnectTimeout = null
-
-  self._pc = new (self._wrtc.RTCPeerConnection)(self.config, self.constraints)
-
-  // We prefer feature detection whenever possible, but sometimes that's not
-  // possible for certain implementations.
-  self._isWrtc = Array.isArray(self._pc.RTCIceConnectionStates)
-  self._isReactNativeWebrtc = typeof self._pc._peerConnectionId === 'number'
-
-  self._pc.oniceconnectionstatechange = function () {
-    self._onIceStateChange()
-  }
-  self._pc.onicegatheringstatechange = function () {
-    self._onIceStateChange()
-  }
-  self._pc.onsignalingstatechange = function () {
-    self._onSignalingStateChange()
-  }
-  self._pc.onicecandidate = function (event) {
-    self._onIceCandidate(event)
-  }
-
-  // Other spec events, unused by this implementation:
-  // - onconnectionstatechange
-  // - onicecandidateerror
-  // - onfingerprintfailure
-
-  if (self.initiator) {
-    var createdOffer = false
-    self._pc.onnegotiationneeded = function () {
-      if (!createdOffer) self._createOffer()
-      createdOffer = true
-    }
-
-    self._setupData({
-      channel: self._pc.createDataChannel(self.channelName, self.channelConfig)
-    })
-  } else {
-    self._pc.ondatachannel = function (event) {
-      self._setupData(event)
-    }
-  }
-
-  if ('addTrack' in self._pc) {
-    // WebRTC Spec, Firefox
-    if (self.stream) {
-      self.stream.getTracks().forEach(function (track) {
-        self._pc.addTrack(track, self.stream)
-      })
-    }
-    self._pc.ontrack = function (event) {
-      self._onTrack(event)
-    }
-  } else {
-    // Chrome, etc. This can be removed once all browsers support `ontrack`
-    if (self.stream) self._pc.addStream(self.stream)
-    self._pc.onaddstream = function (event) {
-      self._onAddStream(event)
-    }
-  }
-
-  // HACK: wrtc doesn't fire the 'negotionneeded' event
-  if (self.initiator && self._isWrtc) {
-    self._pc.onnegotiationneeded()
-  }
-
-  self._onFinishBound = function () {
-    self._onFinish()
-  }
-  self.once('finish', self._onFinishBound)
-}
-
-Peer.WEBRTC_SUPPORT = !!getBrowserRTC()
-
-/**
- * Expose config, constraints, and data channel config for overriding all Peer
- * instances. Otherwise, just set opts.config, opts.constraints, or opts.channelConfig
- * when constructing a Peer.
- */
-Peer.config = {
-  iceServers: [
-    {
-      urls: 'stun:stun.l.google.com:19302'
-    },
-    {
-      urls: 'stun:global.stun.twilio.com:3478?transport=udp'
-    }
-  ]
-}
-Peer.constraints = {}
-Peer.channelConfig = {}
-
-Object.defineProperty(Peer.prototype, 'bufferSize', {
-  get: function () {
-    var self = this
-    return (self._channel && self._channel.bufferedAmount) || 0
-  }
-})
-
-Peer.prototype.address = function () {
-  var self = this
-  return { port: self.localPort, family: 'IPv4', address: self.localAddress }
-}
-
-Peer.prototype.signal = function (data) {
-  var self = this
-  if (self.destroyed) throw new Error('cannot signal after peer is destroyed')
-  if (typeof data === 'string') {
-    try {
-      data = JSON.parse(data)
-    } catch (err) {
-      data = {}
-    }
-  }
-  self._debug('signal()')
-
-  if (data.candidate) {
-    if (self._pc.remoteDescription && self._pc.remoteDescription.type) self._addIceCandidate(data.candidate)
-    else self._pendingCandidates.push(data.candidate)
-  }
-  if (data.sdp) {
-    self._pc.setRemoteDescription(new (self._wrtc.RTCSessionDescription)(data), function () {
-      if (self.destroyed) return
-
-      self._pendingCandidates.forEach(function (candidate) {
-        self._addIceCandidate(candidate)
-      })
-      self._pendingCandidates = []
-
-      if (self._pc.remoteDescription.type === 'offer') self._createAnswer()
-    }, function (err) { self.destroy(err) })
-  }
-  if (!data.sdp && !data.candidate) {
-    self.destroy(new Error('signal() called with invalid signal data'))
-  }
-}
-
-Peer.prototype._addIceCandidate = function (candidate) {
-  var self = this
-  try {
-    self._pc.addIceCandidate(
-      new self._wrtc.RTCIceCandidate(candidate),
-      noop,
-      function (err) { self.destroy(err) }
-    )
-  } catch (err) {
-    self.destroy(new Error('error adding candidate: ' + err.message))
-  }
-}
-
-/**
- * Send text/binary data to the remote peer.
- * @param {TypedArrayView|ArrayBuffer|Buffer|string|Blob|Object} chunk
- */
-Peer.prototype.send = function (chunk) {
-  var self = this
-  self._channel.send(chunk)
-}
-
-// TODO: Delete this method once readable-stream is updated to contain a default
-// implementation of destroy() that automatically calls _destroy()
-// See: https://github.com/nodejs/readable-stream/issues/283
-Peer.prototype.destroy = function (err) {
-  var self = this
-  self._destroy(err, function () {})
-}
-
-Peer.prototype._destroy = function (err, cb) {
-  var self = this
-  if (self.destroyed) return
-
-  self._debug('destroy (error: %s)', err && (err.message || err))
-
-  self.readable = self.writable = false
-
-  if (!self._readableState.ended) self.push(null)
-  if (!self._writableState.finished) self.end()
-
-  self.destroyed = true
-  self.connected = false
-  self._pcReady = false
-  self._channelReady = false
-  self._previousStreams = null
-
-  clearInterval(self._interval)
-  clearTimeout(self._reconnectTimeout)
-  self._interval = null
-  self._reconnectTimeout = null
-  self._chunk = null
-  self._cb = null
-
-  if (self._onFinishBound) self.removeListener('finish', self._onFinishBound)
-  self._onFinishBound = null
-
-  if (self._pc) {
-    try {
-      self._pc.close()
-    } catch (err) {}
-
-    self._pc.oniceconnectionstatechange = null
-    self._pc.onicegatheringstatechange = null
-    self._pc.onsignalingstatechange = null
-    self._pc.onicecandidate = null
-    if ('addTrack' in self._pc) {
-      self._pc.ontrack = null
-    } else {
-      self._pc.onaddstream = null
-    }
-    self._pc.onnegotiationneeded = null
-    self._pc.ondatachannel = null
-  }
-
-  if (self._channel) {
-    try {
-      self._channel.close()
-    } catch (err) {}
-
-    self._channel.onmessage = null
-    self._channel.onopen = null
-    self._channel.onclose = null
-    self._channel.onerror = null
-  }
-  self._pc = null
-  self._channel = null
-
-  if (err) self.emit('error', err)
-  self.emit('close')
-  cb()
-}
-
-Peer.prototype._setupData = function (event) {
-  var self = this
-  if (!event.channel) {
-    // In some situations `pc.createDataChannel()` returns `undefined` (in wrtc),
-    // which is invalid behavior. Handle it gracefully.
-    // See: https://github.com/feross/simple-peer/issues/163
-    return self.destroy(new Error('Data channel event is missing `channel` property'))
-  }
-
-  self._channel = event.channel
-  self._channel.binaryType = 'arraybuffer'
-
-  if (typeof self._channel.bufferedAmountLowThreshold === 'number') {
-    self._channel.bufferedAmountLowThreshold = MAX_BUFFERED_AMOUNT
-  }
-
-  self.channelName = self._channel.label
-
-  self._channel.onmessage = function (event) {
-    self._onChannelMessage(event)
-  }
-  self._channel.onbufferedamountlow = function () {
-    self._onChannelBufferedAmountLow()
-  }
-  self._channel.onopen = function () {
-    self._onChannelOpen()
-  }
-  self._channel.onclose = function () {
-    self._onChannelClose()
-  }
-  self._channel.onerror = function (err) {
-    self.destroy(err)
-  }
-}
-
-Peer.prototype._read = function () {}
-
-Peer.prototype._write = function (chunk, encoding, cb) {
-  var self = this
-  if (self.destroyed) return cb(new Error('cannot write after peer is destroyed'))
-
-  if (self.connected) {
-    try {
-      self.send(chunk)
-    } catch (err) {
-      return self.destroy(err)
-    }
-    if (self._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
-      self._debug('start backpressure: bufferedAmount %d', self._channel.bufferedAmount)
-      self._cb = cb
-    } else {
-      cb(null)
-    }
-  } else {
-    self._debug('write before connect')
-    self._chunk = chunk
-    self._cb = cb
-  }
-}
-
-// When stream finishes writing, close socket. Half open connections are not
-// supported.
-Peer.prototype._onFinish = function () {
-  var self = this
-  if (self.destroyed) return
-
-  if (self.connected) {
-    destroySoon()
-  } else {
-    self.once('connect', destroySoon)
-  }
-
-  // Wait a bit before destroying so the socket flushes.
-  // TODO: is there a more reliable way to accomplish this?
-  function destroySoon () {
-    setTimeout(function () {
-      self.destroy()
-    }, 1000)
-  }
-}
-
-Peer.prototype._createOffer = function () {
-  var self = this
-  if (self.destroyed) return
-
-  self._pc.createOffer(function (offer) {
-    if (self.destroyed) return
-    offer.sdp = self.sdpTransform(offer.sdp)
-    self._pc.setLocalDescription(offer, onSuccess, onError)
-
-    function onSuccess () {
-      if (self.destroyed) return
-      if (self.trickle || self._iceComplete) sendOffer()
-      else self.once('_iceComplete', sendOffer) // wait for candidates
-    }
-
-    function onError (err) {
-      self.destroy(err)
-    }
-
-    function sendOffer () {
-      var signal = self._pc.localDescription || offer
-      self._debug('signal')
-      self.emit('signal', {
-        type: signal.type,
-        sdp: signal.sdp
-      })
-    }
-  }, function (err) { self.destroy(err) }, self.offerConstraints)
-}
-
-Peer.prototype._createAnswer = function () {
-  var self = this
-  if (self.destroyed) return
-
-  self._pc.createAnswer(function (answer) {
-    if (self.destroyed) return
-    answer.sdp = self.sdpTransform(answer.sdp)
-    self._pc.setLocalDescription(answer, onSuccess, onError)
-
-    function onSuccess () {
-      if (self.destroyed) return
-      if (self.trickle || self._iceComplete) sendAnswer()
-      else self.once('_iceComplete', sendAnswer)
-    }
-
-    function onError (err) {
-      self.destroy(err)
-    }
-
-    function sendAnswer () {
-      var signal = self._pc.localDescription || answer
-      self._debug('signal')
-      self.emit('signal', {
-        type: signal.type,
-        sdp: signal.sdp
-      })
-    }
-  }, function (err) { self.destroy(err) }, self.answerConstraints)
-}
-
-Peer.prototype._onIceStateChange = function () {
-  var self = this
-  if (self.destroyed) return
-  var iceConnectionState = self._pc.iceConnectionState
-  var iceGatheringState = self._pc.iceGatheringState
-
-  self._debug(
-    'iceStateChange (connection: %s) (gathering: %s)',
-    iceConnectionState,
-    iceGatheringState
-  )
-  self.emit('iceStateChange', iceConnectionState, iceGatheringState)
-
-  if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
-    clearTimeout(self._reconnectTimeout)
-    self._pcReady = true
-    self._maybeReady()
-  }
-  if (iceConnectionState === 'disconnected') {
-    if (self.reconnectTimer) {
-      // If user has set `opt.reconnectTimer`, allow time for ICE to attempt a reconnect
-      clearTimeout(self._reconnectTimeout)
-      self._reconnectTimeout = setTimeout(function () {
-        self.destroy()
-      }, self.reconnectTimer)
-    } else {
-      self.destroy()
-    }
-  }
-  if (iceConnectionState === 'failed') {
-    self.destroy(new Error('Ice connection failed.'))
-  }
-  if (iceConnectionState === 'closed') {
-    self.destroy()
-  }
-}
-
-Peer.prototype.getStats = function (cb) {
-  var self = this
-
-  // Promise-based getStats() (standard)
-  if (self._pc.getStats.length === 0) {
-    self._pc.getStats().then(function (res) {
-      var reports = []
-      res.forEach(function (report) {
-        reports.push(report)
-      })
-      cb(null, reports)
-    }, function (err) { cb(err) })
-
-  // Two-parameter callback-based getStats() (deprecated, former standard)
-  } else if (self._isReactNativeWebrtc) {
-    self._pc.getStats(null, function (res) {
-      var reports = []
-      res.forEach(function (report) {
-        reports.push(report)
-      })
-      cb(null, reports)
-    }, function (err) { cb(err) })
-
-  // Single-parameter callback-based getStats() (non-standard)
-  } else if (self._pc.getStats.length > 0) {
-    self._pc.getStats(function (res) {
-      // If we destroy connection in `connect` callback this code might happen to run when actual connection is already closed
-      if (self.destroyed) return
-
-      var reports = []
-      res.result().forEach(function (result) {
-        var report = {}
-        result.names().forEach(function (name) {
-          report[name] = result.stat(name)
-        })
-        report.id = result.id
-        report.type = result.type
-        report.timestamp = result.timestamp
-        reports.push(report)
-      })
-      cb(null, reports)
-    }, function (err) { cb(err) })
-
-  // Unknown browser, skip getStats() since it's anyone's guess which style of
-  // getStats() they implement.
-  } else {
-    cb(null, [])
-  }
-}
-
-Peer.prototype._maybeReady = function () {
-  var self = this
-  self._debug('maybeReady pc %s channel %s', self._pcReady, self._channelReady)
-  if (self.connected || self._connecting || !self._pcReady || !self._channelReady) return
-
-  self._connecting = true
-
-  // HACK: We can't rely on order here, for details see https://github.com/js-platform/node-webrtc/issues/339
-  function findCandidatePair () {
-    if (self.destroyed) return
-
-    self.getStats(function (err, items) {
-      if (self.destroyed) return
-
-      // Treat getStats error as non-fatal. It's not essential.
-      if (err) items = []
-
-      var remoteCandidates = {}
-      var localCandidates = {}
-      var candidatePairs = {}
-      var foundSelectedCandidatePair = false
-
-      items.forEach(function (item) {
-        // TODO: Once all browsers support the hyphenated stats report types, remove
-        // the non-hypenated ones
-        if (item.type === 'remotecandidate' || item.type === 'remote-candidate') {
-          remoteCandidates[item.id] = item
-        }
-        if (item.type === 'localcandidate' || item.type === 'local-candidate') {
-          localCandidates[item.id] = item
-        }
-        if (item.type === 'candidatepair' || item.type === 'candidate-pair') {
-          candidatePairs[item.id] = item
-        }
-      })
-
-      items.forEach(function (item) {
-        // Spec-compliant
-        if (item.type === 'transport') {
-          setSelectedCandidatePair(candidatePairs[item.selectedCandidatePairId])
-        }
-
-        // Old implementations
-        if (
-          (item.type === 'googCandidatePair' && item.googActiveConnection === 'true') ||
-          ((item.type === 'candidatepair' || item.type === 'candidate-pair') && item.selected)
-        ) {
-          setSelectedCandidatePair(item)
-        }
-      })
-
-      function setSelectedCandidatePair (selectedCandidatePair) {
-        foundSelectedCandidatePair = true
-
-        var local = localCandidates[selectedCandidatePair.localCandidateId]
-
-        if (local && local.ip) {
-          // Spec
-          self.localAddress = local.ip
-          self.localPort = Number(local.port)
-        } else if (local && local.ipAddress) {
-          // Firefox
-          self.localAddress = local.ipAddress
-          self.localPort = Number(local.portNumber)
-        } else if (typeof selectedCandidatePair.googLocalAddress === 'string') {
-          // TODO: remove this once Chrome 58 is released
-          local = selectedCandidatePair.googLocalAddress.split(':')
-          self.localAddress = local[0]
-          self.localPort = Number(local[1])
-        }
-
-        var remote = remoteCandidates[selectedCandidatePair.remoteCandidateId]
-
-        if (remote && remote.ip) {
-          // Spec
-          self.remoteAddress = remote.ip
-          self.remotePort = Number(remote.port)
-        } else if (remote && remote.ipAddress) {
-          // Firefox
-          self.remoteAddress = remote.ipAddress
-          self.remotePort = Number(remote.portNumber)
-        } else if (typeof selectedCandidatePair.googRemoteAddress === 'string') {
-          // TODO: remove this once Chrome 58 is released
-          remote = selectedCandidatePair.googRemoteAddress.split(':')
-          self.remoteAddress = remote[0]
-          self.remotePort = Number(remote[1])
-        }
-        self.remoteFamily = 'IPv4'
-
-        self._debug(
-          'connect local: %s:%s remote: %s:%s',
-          self.localAddress, self.localPort, self.remoteAddress, self.remotePort
-        )
-      }
-
-      // Ignore candidate pair selection in browsers like Safari 11 that do not have any local or remote candidates
-      // But wait until at least 1 candidate pair is available
-      if (!foundSelectedCandidatePair && (!Object.keys(candidatePairs).length || Object.keys(localCandidates).length)) {
-        setTimeout(findCandidatePair, 100)
-        return
-      } else {
-        self._connecting = false
-        self.connected = true
-      }
-
-      if (self._chunk) {
-        try {
-          self.send(self._chunk)
-        } catch (err) {
-          return self.destroy(err)
-        }
-        self._chunk = null
-        self._debug('sent chunk from "write before connect"')
-
-        var cb = self._cb
-        self._cb = null
-        cb(null)
-      }
-
-      // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
-      // fallback to using setInterval to implement backpressure.
-      if (typeof self._channel.bufferedAmountLowThreshold !== 'number') {
-        self._interval = setInterval(function () { self._onInterval() }, 150)
-        if (self._interval.unref) self._interval.unref()
-      }
-
-      self._debug('connect')
-      self.emit('connect')
-    })
-  }
-  findCandidatePair()
-}
-
-Peer.prototype._onInterval = function () {
-  var self = this
-  if (!self._cb || !self._channel || self._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
-    return
-  }
-  self._onChannelBufferedAmountLow()
-}
-
-Peer.prototype._onSignalingStateChange = function () {
-  var self = this
-  if (self.destroyed) return
-  self._debug('signalingStateChange %s', self._pc.signalingState)
-  self.emit('signalingStateChange', self._pc.signalingState)
-}
-
-Peer.prototype._onIceCandidate = function (event) {
-  var self = this
-  if (self.destroyed) return
-  if (event.candidate && self.trickle) {
-    self.emit('signal', {
-      candidate: {
-        candidate: event.candidate.candidate,
-        sdpMLineIndex: event.candidate.sdpMLineIndex,
-        sdpMid: event.candidate.sdpMid
-      }
-    })
-  } else if (!event.candidate) {
-    self._iceComplete = true
-    self.emit('_iceComplete')
-  }
-}
-
-Peer.prototype._onChannelMessage = function (event) {
-  var self = this
-  if (self.destroyed) return
-  var data = event.data
-  if (data instanceof ArrayBuffer) data = Buffer.from(data)
-  self.push(data)
-}
-
-Peer.prototype._onChannelBufferedAmountLow = function () {
-  var self = this
-  if (self.destroyed || !self._cb) return
-  self._debug('ending backpressure: bufferedAmount %d', self._channel.bufferedAmount)
-  var cb = self._cb
-  self._cb = null
-  cb(null)
-}
-
-Peer.prototype._onChannelOpen = function () {
-  var self = this
-  if (self.connected || self.destroyed) return
-  self._debug('on channel open')
-  self._channelReady = true
-  self._maybeReady()
-}
-
-Peer.prototype._onChannelClose = function () {
-  var self = this
-  if (self.destroyed) return
-  self._debug('on channel close')
-  self.destroy()
-}
-
-Peer.prototype._onAddStream = function (event) {
-  var self = this
-  if (self.destroyed) return
-  self._debug('on add stream')
-  self.emit('stream', event.stream)
-}
-
-Peer.prototype._onTrack = function (event) {
-  var self = this
-  if (self.destroyed) return
-  self._debug('on track')
-  var id = event.streams[0].id
-  if (self._previousStreams.indexOf(id) !== -1) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
-  self._previousStreams.push(id)
-  self.emit('stream', event.streams[0])
-}
-
-Peer.prototype._debug = function () {
-  var self = this
-  var args = [].slice.call(arguments)
-  args[0] = '[' + self._id + '] ' + args[0]
-  debug.apply(null, args)
-}
-
-// Transform constraints objects into the new format (unless Chromium)
-// TODO: This can be removed when Chromium supports the new format
-Peer.prototype._transformConstraints = function (constraints) {
-  var self = this
-
-  if (Object.keys(constraints).length === 0) {
-    return constraints
-  }
-
-  if ((constraints.mandatory || constraints.optional) && !self._isChromium) {
-    // convert to new format
-
-    // Merge mandatory and optional objects, prioritizing mandatory
-    var newConstraints = Object.assign({}, constraints.optional, constraints.mandatory)
-
-    // fix casing
-    if (newConstraints.OfferToReceiveVideo !== undefined) {
-      newConstraints.offerToReceiveVideo = newConstraints.OfferToReceiveVideo
-      delete newConstraints['OfferToReceiveVideo']
-    }
-
-    if (newConstraints.OfferToReceiveAudio !== undefined) {
-      newConstraints.offerToReceiveAudio = newConstraints.OfferToReceiveAudio
-      delete newConstraints['OfferToReceiveAudio']
-    }
-
-    return newConstraints
-  } else if (!constraints.mandatory && !constraints.optional && self._isChromium) {
-    // convert to old format
-
-    // fix casing
-    if (constraints.offerToReceiveVideo !== undefined) {
-      constraints.OfferToReceiveVideo = constraints.offerToReceiveVideo
-      delete constraints['offerToReceiveVideo']
-    }
-
-    if (constraints.offerToReceiveAudio !== undefined) {
-      constraints.OfferToReceiveAudio = constraints.offerToReceiveAudio
-      delete constraints['offerToReceiveAudio']
-    }
-
-    return {
-      mandatory: constraints // NOTE: All constraints are upgraded to mandatory
-    }
-  }
-
-  return constraints
-}
-
-function noop () {}
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":22,"debug":126,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],129:[function(require,module,exports){
+},{"../common":125,"./tracker":123,"debug":33,"inherits":48,"randombytes":84,"simple-peer":105,"simple-websocket":126,"xtend":156}],125:[function(require,module,exports){
+arguments[4][13][0].apply(exports,arguments)
+},{"./common-node":19,"dup":13,"safe-buffer":102,"xtend/mutable":157}],126:[function(require,module,exports){
 (function (process){
 /* global WebSocket, DOMException */
 
@@ -20240,7 +19509,7 @@ Socket.prototype._debug = function () {
 }
 
 }).call(this,require('_process'))
-},{"_process":21,"debug":126,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":100,"ws":19}],130:[function(require,module,exports){
+},{"_process":21,"debug":33,"inherits":48,"randombytes":84,"readable-stream":94,"safe-buffer":102,"ws":19}],127:[function(require,module,exports){
 (function (Buffer){
 module.exports = Piece
 
@@ -20347,7 +19616,7 @@ Piece.prototype.init = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22}],131:[function(require,module,exports){
+},{"buffer":22}],128:[function(require,module,exports){
 
 exports = module.exports = trim;
 
@@ -20363,7 +19632,7 @@ exports.right = function(str){
   return str.replace(/\s*$/, '');
 };
 
-},{}],132:[function(require,module,exports){
+},{}],129:[function(require,module,exports){
 (function (Buffer){
 /**
  * Convert a typed array to a Buffer without a copy
@@ -20392,7 +19661,7 @@ module.exports = function typedarrayToBuffer (arr) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22,"is-typedarray":53}],133:[function(require,module,exports){
+},{"buffer":22,"is-typedarray":53}],130:[function(require,module,exports){
 (function (Buffer){
 var UINT_32_MAX = 0xffffffff
 
@@ -20428,7 +19697,7 @@ exports.encode.bytes = 8
 exports.decode.bytes = 8
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22}],134:[function(require,module,exports){
+},{"buffer":22}],131:[function(require,module,exports){
 "use strict"
 
 function unique_pred(list, compare) {
@@ -20487,7 +19756,7 @@ function unique(list, compare, sorted) {
 
 module.exports = unique
 
-},{}],135:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 'use strict';
 var uniqueRandom = require('unique-random');
 
@@ -20499,7 +19768,7 @@ module.exports = function (arr) {
 	};
 };
 
-},{"unique-random":136}],136:[function(require,module,exports){
+},{"unique-random":133}],133:[function(require,module,exports){
 'use strict';
 module.exports = function (min, max) {
 	var prev;
@@ -20509,7 +19778,7 @@ module.exports = function (min, max) {
 	};
 };
 
-},{}],137:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 module.exports = remove
 
 function remove (arr, i) {
@@ -20523,7 +19792,7 @@ function remove (arr, i) {
   return last
 }
 
-},{}],138:[function(require,module,exports){
+},{}],135:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -21257,7 +20526,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":139,"punycode":79,"querystring":82}],139:[function(require,module,exports){
+},{"./util":136,"punycode":79,"querystring":82}],136:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -21275,7 +20544,7 @@ module.exports = {
   }
 };
 
-},{}],140:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 var bencode = require('bencode')
 var BitField = require('bitfield')
 var Buffer = require('safe-buffer').Buffer
@@ -21518,17 +20787,13 @@ module.exports = function (metadata) {
   return utMetadata
 }
 
-},{"bencode":143,"bitfield":5,"debug":144,"events":38,"inherits":48,"safe-buffer":100,"simple-sha1":104}],141:[function(require,module,exports){
+},{"bencode":140,"bitfield":5,"debug":33,"events":38,"inherits":48,"safe-buffer":102,"simple-sha1":106}],138:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
-},{"buffer":22,"dup":7}],142:[function(require,module,exports){
+},{"buffer":22,"dup":7}],139:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8,"safe-buffer":100}],143:[function(require,module,exports){
+},{"dup":8,"safe-buffer":102}],140:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"./decode":141,"./encode":142,"dup":9}],144:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./debug":145,"_process":21,"dup":10}],145:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"dup":11,"ms":65}],146:[function(require,module,exports){
+},{"./decode":138,"./encode":139,"dup":9}],141:[function(require,module,exports){
 (function (global){
 
 /**
@@ -21599,7 +20864,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],147:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 (function (Buffer){
 var bs = require('binary-search')
 var EventEmitter = require('events').EventEmitter
@@ -22074,7 +21339,7 @@ MP4Remuxer.prototype._generateMoof = function (track, firstSample, lastSample) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"binary-search":4,"buffer":22,"events":38,"inherits":48,"mp4-box-encoding":61,"mp4-stream":64,"range-slice-stream":85}],148:[function(require,module,exports){
+},{"binary-search":4,"buffer":22,"events":38,"inherits":48,"mp4-box-encoding":61,"mp4-stream":64,"range-slice-stream":85}],143:[function(require,module,exports){
 var MediaElementWrapper = require('mediasource')
 var pump = require('pump')
 
@@ -22199,7 +21464,7 @@ VideoStream.prototype.destroy = function () {
 	self._elem.src = ''
 }
 
-},{"./mp4-remuxer":147,"mediasource":57,"pump":78}],149:[function(require,module,exports){
+},{"./mp4-remuxer":142,"mediasource":57,"pump":78}],144:[function(require,module,exports){
 (function (process,global){
 /* global FileList */
 
@@ -22681,7 +21946,7 @@ function isFileList (obj) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/tcp-pool":19,"./lib/torrent":154,"./package.json":160,"_process":21,"bittorrent-dht/client":19,"create-torrent":29,"debug":156,"events":38,"inherits":48,"load-ip-set":19,"parse-torrent":74,"path":75,"randombytes":84,"run-parallel":98,"safe-buffer":100,"simple-concat":101,"simple-peer":159,"speedometer":108,"xtend":163,"zero-fill":165}],150:[function(require,module,exports){
+},{"./lib/tcp-pool":19,"./lib/torrent":149,"./package.json":153,"_process":21,"bittorrent-dht/client":19,"create-torrent":29,"debug":33,"events":38,"inherits":48,"load-ip-set":19,"parse-torrent":74,"path":75,"randombytes":84,"run-parallel":100,"safe-buffer":102,"simple-concat":103,"simple-peer":152,"speedometer":108,"xtend":156,"zero-fill":158}],145:[function(require,module,exports){
 module.exports = FileStream
 
 var debug = require('debug')('webtorrent:file-stream')
@@ -22785,7 +22050,7 @@ FileStream.prototype._destroy = function (err, onclose) {
   if (onclose) onclose()
 }
 
-},{"debug":156,"inherits":48,"readable-stream":94}],151:[function(require,module,exports){
+},{"debug":33,"inherits":48,"readable-stream":94}],146:[function(require,module,exports){
 (function (process){
 module.exports = File
 
@@ -22916,7 +22181,7 @@ File.prototype._destroy = function () {
 }
 
 }).call(this,require('_process'))
-},{"./file-stream":150,"_process":21,"end-of-stream":37,"events":38,"inherits":48,"path":75,"readable-stream":94,"render-media":95,"stream-to-blob":114,"stream-to-blob-url":113,"stream-with-known-length-to-buffer":115}],152:[function(require,module,exports){
+},{"./file-stream":145,"_process":21,"end-of-stream":37,"events":38,"inherits":48,"path":75,"readable-stream":94,"render-media":95,"stream-to-blob":114,"stream-to-blob-url":113,"stream-with-known-length-to-buffer":115}],147:[function(require,module,exports){
 var arrayRemove = require('unordered-array-remove')
 var debug = require('debug')('webtorrent:peer')
 var Wire = require('bittorrent-protocol')
@@ -23163,7 +22428,7 @@ Peer.prototype.destroy = function (err) {
 
 function noop () {}
 
-},{"./webconn":155,"bittorrent-protocol":6,"debug":156,"unordered-array-remove":137}],153:[function(require,module,exports){
+},{"./webconn":150,"bittorrent-protocol":6,"debug":33,"unordered-array-remove":134}],148:[function(require,module,exports){
 module.exports = RarityMap
 
 /**
@@ -23286,7 +22551,7 @@ function trueFn () {
   return true
 }
 
-},{}],154:[function(require,module,exports){
+},{}],149:[function(require,module,exports){
 (function (process,global){
 /* global URL, Blob */
 
@@ -25039,7 +24304,7 @@ function randomInt (high) {
 function noop () {}
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../package.json":160,"./file":151,"./peer":152,"./rarity-map":153,"./server":19,"_process":21,"addr-to-ip-port":2,"bitfield":5,"chunk-store-stream/write":26,"debug":156,"events":38,"fs":20,"fs-chunk-store":58,"immediate-chunk-store":47,"inherits":48,"multistream":66,"net":19,"os":19,"parse-torrent":74,"path":75,"pump":158,"random-iterate":83,"run-parallel":98,"run-parallel-limit":97,"simple-get":102,"simple-sha1":104,"speedometer":108,"torrent-discovery":121,"torrent-piece":130,"uniq":134,"ut_metadata":140,"ut_pex":19,"xtend":163,"xtend/mutable":164}],155:[function(require,module,exports){
+},{"../package.json":153,"./file":146,"./peer":147,"./rarity-map":148,"./server":19,"_process":21,"addr-to-ip-port":2,"bitfield":5,"chunk-store-stream/write":26,"debug":33,"events":38,"fs":20,"fs-chunk-store":58,"immediate-chunk-store":47,"inherits":48,"multistream":66,"net":19,"os":19,"parse-torrent":74,"path":75,"pump":151,"random-iterate":83,"run-parallel":100,"run-parallel-limit":99,"simple-get":104,"simple-sha1":106,"speedometer":108,"torrent-discovery":121,"torrent-piece":127,"uniq":131,"ut_metadata":137,"ut_pex":19,"xtend":156,"xtend/mutable":157}],150:[function(require,module,exports){
 module.exports = WebConn
 
 var BitField = require('bitfield')
@@ -25238,11 +24503,7 @@ WebConn.prototype.destroy = function () {
   this._torrent = null
 }
 
-},{"../package.json":160,"bitfield":5,"bittorrent-protocol":6,"debug":156,"inherits":48,"safe-buffer":100,"simple-get":102,"simple-sha1":104}],156:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./debug":157,"_process":21,"dup":10}],157:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"dup":11,"ms":65}],158:[function(require,module,exports){
+},{"../package.json":153,"bitfield":5,"bittorrent-protocol":6,"debug":33,"inherits":48,"safe-buffer":102,"simple-get":104,"simple-sha1":106}],151:[function(require,module,exports){
 (function (process){
 var once = require('once')
 var eos = require('end-of-stream')
@@ -25328,7 +24589,7 @@ var pump = function () {
 module.exports = pump
 
 }).call(this,require('_process'))
-},{"_process":21,"end-of-stream":37,"fs":19,"once":68}],159:[function(require,module,exports){
+},{"_process":21,"end-of-stream":37,"fs":19,"once":68}],152:[function(require,module,exports){
 (function (Buffer){
 module.exports = Peer
 
@@ -26136,11 +25397,11 @@ Peer.prototype._transformConstraints = function (constraints) {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":22,"debug":156,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],160:[function(require,module,exports){
+},{"buffer":22,"debug":33,"get-browser-rtc":42,"inherits":48,"randombytes":84,"readable-stream":94}],153:[function(require,module,exports){
 module.exports={
   "version": "0.98.23"
 }
-},{}],161:[function(require,module,exports){
+},{}],154:[function(require,module,exports){
 // Returns a wrapper function that returns a wrapped callback
 // The wrapper function should do some stuff, and return a
 // presumably different callback function.
@@ -26175,7 +25436,7 @@ function wrappy (fn, cb) {
   }
 }
 
-},{}],162:[function(require,module,exports){
+},{}],155:[function(require,module,exports){
 "use strict";
 var window = require("global/window")
 var isFunction = require("is-function")
@@ -26422,7 +25683,7 @@ function getXml(xhr) {
 
 function noop() {}
 
-},{"global/window":43,"is-function":52,"parse-headers":69,"xtend":163}],163:[function(require,module,exports){
+},{"global/window":43,"is-function":52,"parse-headers":69,"xtend":156}],156:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -26443,7 +25704,7 @@ function extend() {
     return target
 }
 
-},{}],164:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -26462,7 +25723,7 @@ function extend(target) {
     return target
 }
 
-},{}],165:[function(require,module,exports){
+},{}],158:[function(require,module,exports){
 /**
  * Given a number, return a zero-filled string.
  * From http://stackoverflow.com/questions/1267283/
