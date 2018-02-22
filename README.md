@@ -1,6 +1,6 @@
 # whiteboard
 
-
+[![Travis](https://travis-ci.org/Yhozen/whiteboard.svg?branch=master&style=flat-square)](https://travis-ci.org/Yhozen/whiteboard)
 [![Code Climate](https://codeclimate.com/github/Yhozen/whiteboard/badges/gpa.svg?style=flat-square)](https://codeclimate.com/github/Yhozen/whiteboard)
 [![Dependency Status](https://david-dm.org/Yhozen/whiteboard.svg?style=flat-square)](https://david-dm.org/Yhozen/whiteboard)
 [![devDependency Status](https://david-dm.org/Yhozen/whiteboard/dev-status.svg?style=flat-square)](https://david-dm.org/Yhozen/whiteboard#info=devDependencies)
