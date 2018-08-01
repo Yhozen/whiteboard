@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "browserify": "^16.1.0",
-    "electron": "^1.8.2",
+    "electron": "^2.0.6",
     "nodemon": "^1.2.1",
     "standard": "*",
     "watchify": "^3.0.0"
