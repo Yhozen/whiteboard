@@ -20,7 +20,7 @@
     "simple-peer": "^9.0.0",
     "through": "^2.3.4",
     "thunky": "^1.0.2",
-    "uglify-js": "^3.3.11",
+    "uglify-js": "^3.4.8",
     "videostream": "^2.3.0",
     "webtorrent": "^0.98.20",
     "xhr": "^2.0.1"
