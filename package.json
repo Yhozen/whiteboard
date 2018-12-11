@@ -22,7 +22,7 @@
     "thunky": "^1.0.2",
     "uglify-js": "^3.3.11",
     "videostream": "^2.3.0",
-    "webtorrent": "^0.98.20",
+    "webtorrent": "^0.103.0",
     "xhr": "^2.0.1"
   },
   "devDependencies": {
