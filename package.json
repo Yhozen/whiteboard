@@ -10,7 +10,7 @@
     "bittorrent-tracker": "^9.5.0",
     "cat-names": "^1.0.2",
     "compression": "^1.1.0",
-    "concat-stream": "^1.4.6",
+    "concat-stream": "^2.0.0",
     "debug": "^3.1.0",
     "drag-drop": "^2.0.0",
     "express": "^4.9.0",
