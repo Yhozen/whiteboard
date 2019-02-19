@@ -30,7 +30,7 @@
     "electron": "^1.8.2",
     "nodemon": "^1.2.1",
     "standard": "*",
-    "watchify": "^3.0.0"
+    "watchify": "^3.11.1"
   },
   "homepage": "http://github.com/feross/whiteboard",
   "keywords": [
