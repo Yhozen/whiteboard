@@ -7,7 +7,7 @@
     "url": "https://github.com/feross/whiteboard/issues"
   },
   "dependencies": {
-    "bittorrent-tracker": "^9.5.0",
+    "bittorrent-tracker": "^9.14.1",
     "cat-names": "^1.0.2",
     "compression": "^1.1.0",
     "concat-stream": "^1.4.6",
